@@ -973,7 +973,7 @@ function ListingScreen({ biz, onUpdate }) {
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
-export default function BusinessPortal() {
+export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [biz, setBiz]           = useState(null);
   const [page, setPage]         = useState("dashboard");
