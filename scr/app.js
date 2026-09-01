@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-const { createClient } = window.supabase || {};
+import { createClient } from "@supabase/supabase-js";
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const SUPA_URL  = process.env.REACT_APP_SUPABASE_URL;
