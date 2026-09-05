@@ -90,6 +90,116 @@ const CAT_MAP = {
   "Beauty":"beauty","Finance":"finance","Jobs":"jobs","Other":"other"
 };
 
+const KYC_REQUIREMENTS = {
+  health:  [{id:"medical_license",label:"Medical License / Registration Certificate",required:true,hint:"Egyptian Medical Syndicate registration or equivalent"},{id:"government_id",label:"Government-Issued Photo ID",required:true,hint:"National ID or passport of the owner"},{id:"facility_cert",label:"Facility Registration Certificate",required:true,hint:"Health ministry registration or clinic operating licence"},{id:"professional_cert",label:"Professional Qualifications",required:false,hint:"Medical degree or specialist certificate (optional)"}],
+  food:    [{id:"passport",label:"International Passport",required:true,hint:"Valid international passport of the business owner"},{id:"health_cert",label:"Health & Safety Certificate",required:true,hint:"Egyptian food authority food safety certificate"},{id:"business_reg",label:"Business Registration",required:true,hint:"Commercial registry or trade licence"}],
+  travel:  [{id:"tourism_license",label:"Tourism Operator License",required:true,hint:"Egyptian Tourism Authority operator licence"},{id:"passport",label:"International Passport",required:true,hint:"Valid passport of owner"},{id:"business_reg",label:"Business Registration",required:false,hint:"Commercial registry if registered"}],
+  housing: [{id:"property_doc",label:"Property Ownership / Rental Authority",required:true,hint:"Title deed or written authority to rent"},{id:"government_id",label:"Government-Issued Photo ID",required:true,hint:"National ID or passport of property owner"}],
+  school:  [{id:"edu_license",label:"Educational / Agency License",required:true,hint:"Ministry of Education licence or CAC registration"},{id:"passport",label:"International Passport",required:true,hint:"Valid passport of director"},{id:"business_reg",label:"Business Registration",required:false,hint:"Commercial registry"}],
+  agency:  [{id:"edu_license",label:"Agency Registration Certificate",required:true,hint:"CAC or equivalent registration"},{id:"passport",label:"International Passport",required:true,hint:"Valid passport of owner"}],
+  language:[{id:"edu_license",label:"Language School License",required:true,hint:"Ministry of Education approval"},{id:"passport",label:"International Passport",required:true,hint:"Valid passport of director"}],
+  other:   [{id:"passport",label:"International Passport",required:true,hint:"Valid passport of the business owner"},{id:"business_reg",label:"Business Registration",required:false,hint:"Commercial registry or trade licence"}],
+};
+
+// ── KYC UPLOAD + DUE DILIGENCE STEP ──────────────────────────────────────────
+function KYCUploadStep({bizCat,onBack,onComplete,loading,err,setErr}){
+  const catKey = CAT_MAP[bizCat]||"other";
+  const requirements = KYC_REQUIREMENTS[catKey]||KYC_REQUIREMENTS["other"];
+  const[uploads,setUploads]=useState({});
+  const[uploading,setUploading]=useState({});
+  const[ddChecked,setDdChecked]=useState({});
+
+  const DD_ITEMS=[
+    {id:"dd1",text:"All information provided is accurate and truthful. I understand that false information leads to immediate termination and potential legal action."},
+    {id:"dd2",text:"This business complies with all applicable laws and is not involved in any illegal activity, money laundering, or financial fraud."},
+    {id:"dd3",text:"I am the authorised representative of this business with full legal authority to enter into this agreement on its behalf."},
+    {id:"dd4",text:"I consent to Xairod conducting additional verification checks and accept that Xairod may decline my application at its sole discretion."},
+    {id:"dd5",text:"I consent to secure storage of submitted documents for verification purposes and agree to the Privacy Policy at xairod.com/privacy."},
+  ];
+
+  const uploadFile=(docType,file)=>{
+    if(!file) return;
+    if(file.size>10*1024*1024){setErr("File too large. Maximum 10MB.");return;}
+    setUploading(p=>({...p,[docType]:true}));
+    setUploads(p=>({...p,[docType]:{file,name:file.name,size:file.size}}));
+    setUploading(p=>({...p,[docType]:false}));
+  };
+
+  const allDocsReady=requirements.filter(r=>r.required).every(r=>uploads[r.id]);
+  const allDDChecked=DD_ITEMS.every(d=>ddChecked[d.id]);
+
+  const handleSubmit=()=>{
+    const missing=requirements.filter(r=>r.required&&!uploads[r.id]).map(r=>r.label);
+    if(missing.length>0){setErr("Please upload: "+missing.join(", "));return;}
+    if(!allDDChecked){setErr("Please confirm all 5 due diligence declarations.");return;}
+    setErr("");onComplete(uploads);
+  };
+
+  return(
+    <div>
+      <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",marginBottom:10,textTransform:"uppercase",letterSpacing:0.8}}>Step 3 — Verification &amp; Due Diligence</div>
+      <div style={{background:"rgba(200,134,26,0.1)",border:"1px solid rgba(200,134,26,0.2)",borderRadius:8,padding:"10px 12px",marginBottom:14,fontSize:11,color:"#F5C550",lineHeight:1.6}}>
+        🔒 Documents are encrypted and stored privately. Only Xairod administrators can access them.
+      </div>
+
+      <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.5)",marginBottom:8}}>Required Documents</div>
+      {requirements.map(req=>(
+        <div key={req.id} style={{marginBottom:12}}>
+          <label style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.4)",marginBottom:4,display:"block",textTransform:"uppercase",letterSpacing:0.7}}>
+            {req.label} {req.required&&<span style={{color:"#C0392B"}}>*</span>}
+            {!req.required&&<span style={{color:"rgba(255,255,255,0.2)",fontWeight:400,textTransform:"none"}}> (optional)</span>}
+          </label>
+          <div style={{fontSize:9,color:"rgba(255,255,255,0.25)",marginBottom:5}}>{req.hint}</div>
+          {uploads[req.id]?(
+            <div style={{background:"rgba(77,217,148,0.08)",border:"1px solid rgba(77,217,148,0.2)",borderRadius:8,padding:"9px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#4DD994"}}>✓ {uploads[req.id].name}</div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.3)"}}>{(uploads[req.id].size/1024).toFixed(1)} KB</div>
+              </div>
+              <button onClick={()=>setUploads(p=>{const n={...p};delete n[req.id];return n;})}
+                style={{background:"none",border:"none",color:"rgba(255,255,255,0.3)",cursor:"pointer",fontSize:18}}>×</button>
+            </div>
+          ):(
+            <label style={{display:"block",padding:"11px",borderRadius:8,border:"1.5px dashed rgba(255,255,255,0.12)",background:"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}>
+              <input type="file" accept=".jpg,.jpeg,.png,.pdf" style={{display:"none"}}
+                onChange={e=>e.target.files[0]&&uploadFile(req.id,e.target.files[0])}/>
+              <div style={{fontSize:18,marginBottom:3}}>{uploading[req.id]?"⏳":"📎"}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontWeight:600}}>
+                {uploading[req.id]?"Processing…":"Click to upload (JPG, PNG or PDF · max 10MB)"}
+              </div>
+            </label>
+          )}
+        </div>
+      ))}
+
+      <div style={{height:1,background:"rgba(255,255,255,0.06)",margin:"14px 0"}}/>
+      <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.5)",marginBottom:8}}>Due Diligence Declarations</div>
+      {DD_ITEMS.map((item,i)=>(
+        <div key={item.id} onClick={()=>setDdChecked(p=>({...p,[item.id]:!p[item.id]}))}
+          style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:7,padding:"10px 12px",background:ddChecked[item.id]?"rgba(77,217,148,0.06)":"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid",borderColor:ddChecked[item.id]?"rgba(77,217,148,0.2)":"rgba(255,255,255,0.05)",cursor:"pointer"}}>
+          <div style={{width:18,height:18,borderRadius:4,border:"2px solid",borderColor:ddChecked[item.id]?"#4DD994":"rgba(255,255,255,0.2)",background:ddChecked[item.id]?"#4DD994":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#03311A",flexShrink:0,marginTop:1,fontWeight:800}}>
+            {ddChecked[item.id]?"✓":""}
+          </div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",lineHeight:1.65}}>{i+1}. {item.text}</div>
+        </div>
+      ))}
+
+      <div style={{background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"9px 12px",margin:"12px 0",fontSize:9,color:"rgba(255,255,255,0.25)",lineHeight:1.7}}>
+        <strong style={{color:"rgba(255,255,255,0.4)"}}>Privacy:</strong> Documents are retained for the duration of your Xairod partnership and deleted upon account closure. Request deletion at hello@xairod.com.
+      </div>
+
+      {err&&<div className="alert alert-error">{err}</div>}
+      <div style={{display:"flex",gap:10}}>
+        <button className="btn-outline" onClick={onBack} style={{flex:1}}>← Back</button>
+        <button className="btn-primary" onClick={handleSubmit} disabled={loading||!allDocsReady||!allDDChecked}
+          style={{flex:2,opacity:(allDocsReady&&allDDChecked)?1:0.45}}>
+          {loading?"Submitting…":"Submit for Review →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── AUTH SCREEN ───────────────────────────────────────────────────────────────
 function AuthScreen({onAuth}){
   const[view,setView]=useState("login");
@@ -122,7 +232,7 @@ function AuthScreen({onAuth}){
     onAuth(data.user,biz);setLoading(false);
   };
 
-  const register=async()=>{
+  const register=async(kycUploads={})=>{
     if(!bizName||!bizCat||!ownerName||!regEmail||!regPwd){setErr("Fill all required fields.");return;}
     if(regPwd!==regPwd2){setErr("Passwords do not match.");return;}
     if(regPwd.length<8){setErr("Password must be at least 8 characters.");return;}
@@ -144,16 +254,36 @@ function AuthScreen({onAuth}){
       id:userId,name:ownerName,email:regEmail,role:"Business Owner"
     });
     // Create business account
-    const{error:bizErr}=await sb.from("business_accounts").insert({
+    const{data:bizData,error:bizErr}=await sb.from("business_accounts").insert({
       user_id:userId,name:bizName,category:catKey,category_label:bizCat,
       city:bizCity,phone:bizPhone,description:bizDesc,owner_name:ownerName,
       email:regEmail,status:"pending",commission_rate:COMMISSION_RATES[catKey]||12
-    });
+    }).select("id").single();
     if(bizErr){
       setErr("Account created but profile setup failed: "+bizErr.message+". Please contact hello@xairod.com");
       setLoading(false);return;
     }
-    setSuccess("Account created! Xairod will review and activate your listing within 24 hours.");
+    // Upload KYC documents to Supabase Storage
+    if(kycUploads&&Object.keys(kycUploads).length>0&&bizData?.id){
+      for(const[docType,doc] of Object.entries(kycUploads)){
+        if(!doc?.file) continue;
+        try{
+          const ext=doc.file.name.split(".").pop();
+          const filePath=userId+"/"+bizData.id+"/"+docType+"_"+Date.now()+"."+ext;
+          const{error:upErr}=await sb.storage.from("kyc-documents").upload(filePath,doc.file,{upsert:true});
+          if(!upErr){
+            await sb.from("kyc_documents").insert({
+              business_id:bizData.id,document_type:docType,
+              file_path:filePath,file_name:doc.file.name,status:"pending"
+            });
+          }
+        }catch(e){console.warn("KYC upload failed:",docType,e);}
+      }
+      await sb.from("business_accounts").update({
+        kyc_status:"submitted",kyc_submitted_at:new Date().toISOString()
+      }).eq("id",bizData.id);
+    }
+    setSuccess("Account created and documents submitted! Xairod will verify your identity within 24–48 hours.");
     setLoading(false);
   };
 
@@ -216,12 +346,12 @@ function AuthScreen({onAuth}){
           {view==="register"&&!success&&(
             <>
               <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:20}}>
-                {[1,2].map((n,i)=>(
+                {[1,2,3].map((n,i)=>(
                   <React.Fragment key={n}>
                     <div style={{width:26,height:26,borderRadius:"50%",background:step>n?"#4DD994":step===n?"#C0392B":"rgba(255,255,255,0.08)",color:"white",fontSize:10,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>
                       {step>n?"✓":n}
                     </div>
-                    {i<1&&<div style={{flex:1,height:2,background:step>n?"#4DD994":"rgba(255,255,255,0.08)",borderRadius:2}}/>}
+                    {i<2&&<div style={{flex:1,height:2,background:step>n?"#4DD994":"rgba(255,255,255,0.08)",borderRadius:2}}/>}
                   </React.Fragment>
                 ))}
               </div>
@@ -272,10 +402,26 @@ function AuthScreen({onAuth}){
                   </div>
                   <div style={{display:"flex",gap:10}}>
                     <button className="btn-outline" onClick={()=>setStep(1)} style={{flex:1}}>← Back</button>
-                    <button className="btn-primary" onClick={register} disabled={loading} style={{flex:2}}>
-                      {loading?"Creating account…":"Create Account →"}</button>
+                    <button className="btn-primary" onClick={()=>{
+                      if(!ownerName||!regEmail||!regPwd){setErr("Fill all required fields.");return;}
+                      if(regPwd!==regPwd2){setErr("Passwords do not match.");return;}
+                      if(regPwd.length<8){setErr("Password must be at least 8 characters.");return;}
+                      if(!agreed){setErr("Please accept the Partner Agreement.");return;}
+                      setErr("");setStep(3);
+                    }} style={{flex:2}}>Continue → Step 3</button>
                   </div>
                 </>
+              )}
+
+              {step===3&&(
+                <KYCUploadStep
+                  bizCat={bizCat}
+                  onBack={()=>setStep(2)}
+                  onComplete={(uploads)=>register(uploads)}
+                  loading={loading}
+                  err={err}
+                  setErr={setErr}
+                />
               )}
             </>
           )}
