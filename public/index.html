@@ -439,12 +439,15 @@ function AuthScreen({onAuth}){
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
 function Sidebar({page,setPage,biz,newLeads,onSignOut}){
   const nav=[
-    {id:"dashboard",icon:"⊞",label:"Dashboard"},
-    {id:"requests",icon:"📥",label:"Requests",badge:newLeads},
-    {id:"bookings",icon:"✅",label:"Bookings"},
-    {id:"payouts",icon:"💰",label:"Payouts"},
-    {id:"listing",icon:"🏢",label:"My Listing"},
-    {id:"settings",icon:"⚙️",label:"Settings"},
+    {id:"dashboard", icon:"⊞", label:"Dashboard"},
+    {id:"requests",  icon:"📥", label:"Requests",   badge:newLeads},
+    {id:"bookings",  icon:"✅", label:"Bookings"},
+    {id:"services",  icon:"🛎️", label:"Services"},
+    {id:"availability",icon:"📅",label:"Availability"},
+    {id:"customers", icon:"👥", label:"Customers"},
+    {id:"payouts",   icon:"💰", label:"Payouts"},
+    {id:"listing",   icon:"🏢", label:"My Listing"},
+    {id:"settings",  icon:"⚙️", label:"Settings"},
   ];
   return(
     <div className="sidebar">
@@ -885,6 +888,241 @@ function ListingScreen({biz,onUpdate}){
     </div>
   );
 }
+
+
+    // ── SERVICES SCREEN ───────────────────────────────────────────────────────
+    function ServicesScreen({biz}){
+      const[services,setServices]=React.useState([]);
+      const[loading,setLoading]=React.useState(true);
+      const[showAdd,setShowAdd]=React.useState(false);
+      const[saving,setSaving]=React.useState(false);
+      const[toast,setToast]=React.useState(null);
+      const[form,setForm]=React.useState({name:"",description:"",price:"",currency:"NGN",duration_mins:60});
+      const showToast=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
+      React.useEffect(()=>{
+        if(!biz?.id) return;
+        sb.from("services").select("*").eq("business_id",biz.id).order("created_at",{ascending:false})
+          .then(({data})=>{if(data)setServices(data);setLoading(false);});
+      },[biz?.id]);
+      const addService=async()=>{
+        if(!form.name||!form.price){showToast("Name and price required","error");return;}
+        setSaving(true);
+        const{data,error}=await sb.from("services").insert({
+          business_id:biz.id,listing_id:biz.listing_id||null,
+          name:form.name,description:form.description,
+          price:parseFloat(form.price),currency:form.currency,
+          duration_mins:parseInt(form.duration_mins)||60,available:true,
+        }).select().single();
+        if(error){showToast("Failed: "+error.message,"error");}
+        else{
+          setServices(prev=>[data,...prev]);setShowAdd(false);
+          setForm({name:"",description:"",price:"",currency:"NGN",duration_mins:60});
+          if(biz.listing_id){
+            const allSvcs=[data,...services].map(s=>({name:s.name,price:s.price,currency:s.currency}));
+            await sb.from("listings").update({services:allSvcs}).eq("id",biz.listing_id);
+          }
+          showToast("Service added — now visible on Xairod");
+        }
+        setSaving(false);
+      };
+      const toggleAvail=async(svc)=>{
+        await sb.from("services").update({available:!svc.available}).eq("id",svc.id);
+        setServices(prev=>prev.map(s=>s.id===svc.id?{...s,available:!s.available}:s));
+      };
+      const deleteSvc=async(id)=>{
+        if(!confirm("Delete this service?")) return;
+        await sb.from("services").delete().eq("id",id);
+        setServices(prev=>prev.filter(s=>s.id!==id));
+      };
+      return(
+        <div style={{padding:"24px 28px 48px"}}>
+          {toast&&<div style={{padding:"10px 14px",borderRadius:8,marginBottom:16,fontSize:12,fontWeight:600,background:toast.type==="success"?"rgba(77,217,148,0.1)":"rgba(192,57,43,0.1)",border:"1px solid "+(toast.type==="success"?"rgba(77,217,148,0.2)":"rgba(192,57,43,0.2)"),color:toast.type==="success"?"#4DD994":"#E74C3C"}}>{toast.msg}</div>}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+            <div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7"}}>Services</div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:2}}>Services you add here appear live on your Xairod listing</div>
+            </div>
+            <button onClick={()=>setShowAdd(true)} className="btn-primary" style={{padding:"9px 18px",fontSize:12}}>+ Add Service</button>
+          </div>
+          {loading?<div style={{color:"rgba(255,255,255,0.3)",padding:40,textAlign:"center"}}>Loading…</div>:
+          services.length===0?(
+            <div style={{textAlign:"center",padding:"48px 0"}}>
+              <div style={{fontSize:48,marginBottom:12}}>🛎️</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:800,color:"rgba(255,255,255,0.4)",marginBottom:6}}>No services yet</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.25)",marginBottom:16}}>Add your services so users know what you offer and at what price.</div>
+              <button onClick={()=>setShowAdd(true)} className="btn-primary">+ Add First Service</button>
+            </div>
+          ):services.map(svc=>(
+            <div key={svc.id} style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#FEFCF7"}}>{svc.name}</div>
+                  <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,fontWeight:800,background:svc.available?"rgba(77,217,148,0.15)":"rgba(255,255,255,0.06)",color:svc.available?"#4DD994":"rgba(255,255,255,0.3)"}}>{svc.available?"Live":"Hidden"}</span>
+                </div>
+                {svc.description&&<div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginBottom:4}}>{svc.description}</div>}
+                <span style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:900,color:"#4DD994"}}>{parseFloat(svc.price||0).toLocaleString()} {svc.currency||"NGN"}</span>
+                <span style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginLeft:8}}>· {svc.duration_mins||60} min</span>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>toggleAvail(svc)} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",padding:"5px 10px",borderRadius:7,fontSize:10,fontWeight:700,cursor:"pointer"}}>{svc.available?"Hide":"Show"}</button>
+                <button onClick={()=>deleteSvc(svc.id)} style={{background:"rgba(192,57,43,0.1)",border:"1px solid rgba(192,57,43,0.2)",color:"#E74C3C",padding:"5px 10px",borderRadius:7,fontSize:10,fontWeight:700,cursor:"pointer"}}>Delete</button>
+              </div>
+            </div>
+          ))}
+          {showAdd&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+              <div style={{background:"#1a1510",border:"1px solid rgba(255,255,255,0.1)",borderRadius:16,padding:24,width:"100%",maxWidth:440}}>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:800,color:"#FEFCF7",marginBottom:16}}>Add Service</div>
+                {[{label:"Service Name *",key:"name",ph:"e.g. University Application — Full Package"},{label:"Description",key:"description",ph:"What's included?"}].map(f=>(
+                  <div key={f.key} style={{marginBottom:12}}>
+                    <label className="label">{f.label}</label>
+                    <input className="input" value={form[f.key]} onChange={e=>setForm({...form,[f.key]:e.target.value})} placeholder={f.ph}/>
+                  </div>
+                ))}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  <div><label className="label">Price *</label><input className="input" type="number" value={form.price} onChange={e=>setForm({...form,price:e.target.value})} placeholder="50000"/></div>
+                  <div><label className="label">Currency</label>
+                    <select className="input" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
+                      <option value="NGN">NGN (₦)</option><option value="EGP">EGP</option><option value="USD">USD</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{marginBottom:16}}>
+                  <label className="label">Duration</label>
+                  <select className="input" value={form.duration_mins} onChange={e=>setForm({...form,duration_mins:parseInt(e.target.value)})}>
+                    {[30,60,90,120,180,240,480,1440,0].map(m=><option key={m} value={m}>{m===0?"N/A":m<60?m+"min":Math.floor(m/60)+"h"+(m%60?m%60+"m":"")}</option>)}
+                  </select>
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>setShowAdd(false)} className="btn-outline" style={{flex:1}}>Cancel</button>
+                  <button onClick={addService} disabled={saving} className="btn-primary" style={{flex:2}}>{saving?"Adding…":"Add Service →"}</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function AvailabilityScreen({biz}){
+      const DAYS=[{k:"mon",l:"Monday"},{k:"tue",l:"Tuesday"},{k:"wed",l:"Wednesday"},{k:"thu",l:"Thursday"},{k:"fri",l:"Friday"},{k:"sat",l:"Saturday"},{k:"sun",l:"Sunday"}];
+      const[hours,setHours]=React.useState({mon:{open:true,from:"09:00",to:"17:00"},tue:{open:true,from:"09:00",to:"17:00"},wed:{open:true,from:"09:00",to:"17:00"},thu:{open:true,from:"09:00",to:"17:00"},fri:{open:true,from:"09:00",to:"17:00"},sat:{open:false,from:"10:00",to:"14:00"},sun:{open:false,from:"10:00",to:"14:00"}});
+      const[blocked,setBlocked]=React.useState([]);
+      const[newBlock,setNewBlock]=React.useState("");
+      const[saving,setSaving]=React.useState(false);
+      const[saved,setSaved]=React.useState(false);
+      React.useEffect(()=>{
+        if(!biz?.id) return;
+        if(biz.listing_id) sb.from("listings").select("opening_hours").eq("id",biz.listing_id).single().then(({data})=>{if(data?.opening_hours&&Object.keys(data.opening_hours).length>0)setHours(data.opening_hours);});
+        sb.from("booking_slots").select("slot_date").eq("business_id",biz.id).eq("is_blocked",true).then(({data})=>{if(data)setBlocked(data.map(d=>d.slot_date));});
+      },[biz?.id]);
+      const saveHours=async()=>{
+        setSaving(true);
+        await sb.from("business_accounts").update({opening_hours:hours}).eq("id",biz.id);
+        if(biz.listing_id) await sb.from("listings").update({opening_hours:hours}).eq("id",biz.listing_id);
+        setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2500);
+      };
+      const blockDate=async()=>{
+        if(!newBlock) return;
+        await sb.from("booking_slots").insert({business_id:biz.id,slot_date:newBlock,is_blocked:true});
+        setBlocked(p=>[...p,newBlock]);setNewBlock("");
+      };
+      const unblock=async(d)=>{
+        await sb.from("booking_slots").delete().eq("business_id",biz.id).eq("slot_date",d).eq("is_blocked",true);
+        setBlocked(p=>p.filter(x=>x!==d));
+      };
+      return(
+        <div style={{padding:"24px 28px 48px"}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:4}}>Availability</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:20}}>Set opening hours and block unavailable dates</div>
+          <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7",marginBottom:16}}>Opening Hours</div>
+            {DAYS.map(day=>(
+              <div key={day.k} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10,paddingBottom:10,borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+                <div style={{width:90,fontSize:12,fontWeight:600,color:hours[day.k]?.open?"#FEFCF7":"rgba(255,255,255,0.25)"}}>{day.l}</div>
+                <button onClick={()=>setHours(h=>({...h,[day.k]:{...h[day.k],open:!h[day.k]?.open}}))}
+                  style={{width:40,height:22,borderRadius:11,background:hours[day.k]?.open?"#4DD994":"rgba(255,255,255,0.1)",border:"none",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                  <div style={{width:16,height:16,borderRadius:"50%",background:"white",position:"absolute",top:3,left:hours[day.k]?.open?21:3,transition:"left 0.2s"}}/>
+                </button>
+                {hours[day.k]?.open?(
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <input type="time" value={hours[day.k]?.from||"09:00"} onChange={e=>setHours(h=>({...h,[day.k]:{...h[day.k],from:e.target.value}}))} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,color:"#FEFCF7",padding:"3px 7px",fontSize:11}}/>
+                    <span style={{color:"rgba(255,255,255,0.3)",fontSize:11}}>to</span>
+                    <input type="time" value={hours[day.k]?.to||"17:00"} onChange={e=>setHours(h=>({...h,[day.k]:{...h[day.k],to:e.target.value}}))} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,color:"#FEFCF7",padding:"3px 7px",fontSize:11}}/>
+                  </div>
+                ):<div style={{fontSize:11,color:"rgba(255,255,255,0.25)"}}>Closed</div>}
+              </div>
+            ))}
+            <button onClick={saveHours} disabled={saving} className="btn-primary" style={{marginTop:4,padding:"9px 20px",fontSize:12}}>
+              {saving?"Saving…":saved?"✓ Saved":"Save Hours"}
+            </button>
+          </div>
+          <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7",marginBottom:4}}>Block Dates</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:12}}>Users won't be able to book on these dates</div>
+            <div style={{display:"flex",gap:10,marginBottom:14}}>
+              <input type="date" value={newBlock} onChange={e=>setNewBlock(e.target.value)} style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#FEFCF7",padding:"8px 12px",fontSize:12}}/>
+              <button onClick={blockDate} disabled={!newBlock} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"#C0392B",color:"white",fontWeight:700,fontSize:12,cursor:"pointer",opacity:newBlock?1:0.4}}>Block</button>
+            </div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {blocked.length===0?<div style={{fontSize:11,color:"rgba(255,255,255,0.2)"}}>No dates blocked</div>:
+              blocked.map(d=>(
+                <div key={d} style={{background:"rgba(192,57,43,0.1)",border:"1px solid rgba(192,57,43,0.2)",borderRadius:8,padding:"5px 10px",display:"flex",alignItems:"center",gap:7}}>
+                  <span style={{fontSize:11,color:"#E74C3C",fontWeight:700}}>{new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</span>
+                  <button onClick={()=>unblock(d)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.3)",cursor:"pointer",fontSize:14}}>×</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function CustomersScreen({biz}){
+      const[requests,setRequests]=React.useState([]);
+      const[loading,setLoading]=React.useState(true);
+      const[search,setSearch]=React.useState("");
+      React.useEffect(()=>{
+        if(!biz?.id) return;
+        sb.from("service_requests").select("*,profiles(name,email,city)").eq("assigned_business_id",biz.id).order("created_at",{ascending:false})
+          .then(({data})=>{if(data)setRequests(data);setLoading(false);});
+      },[biz?.id]);
+      const custMap={};
+      requests.forEach(r=>{
+        if(!custMap[r.user_id]){custMap[r.user_id]={id:r.user_id,name:r.profiles?.name||"User",email:r.profiles?.email||"—",city:r.profiles?.city||"—",count:0,completed:0,last:r.created_at};}
+        custMap[r.user_id].count++;
+        if(r.status==="completed")custMap[r.user_id].completed++;
+      });
+      const customers=Object.values(custMap).filter(cu=>!search||cu.name.toLowerCase().includes(search.toLowerCase()));
+      return(
+        <div style={{padding:"24px 28px 48px"}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:4}}>Customers</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:20}}>All users who have sent you booking requests</div>
+          <input className="input" placeholder="Search customers…" value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:16}}/>
+          {loading?<div style={{color:"rgba(255,255,255,0.3)",padding:40,textAlign:"center"}}>Loading…</div>:
+          customers.length===0?(
+            <div style={{textAlign:"center",padding:"48px 0"}}>
+              <div style={{fontSize:48,marginBottom:12}}>👥</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:800,color:"rgba(255,255,255,0.4)"}}>No customers yet</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.25)",marginTop:6}}>When users send requests they appear here.</div>
+            </div>
+          ):customers.map(cu=>(
+            <div key={cu.id} style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:40,height:40,borderRadius:"50%",background:"#0A6B3E",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:"white",flexShrink:0}}>{cu.name[0]?.toUpperCase()||"?"}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#FEFCF7",marginBottom:2}}>{cu.name}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)"}}>{cu.email} · {cu.city}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:12,fontWeight:800,color:"#4DD994"}}>{cu.count} request{cu.count!==1?"s":""}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>{cu.completed} completed</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 function App(){
