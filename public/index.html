@@ -633,11 +633,14 @@ function RequestsScreen({biz,requests,onUpdate}){
       timeline,notes:quoteNote,status:"pending"
     });
     await sb.from("service_requests").update({status:"quoted"}).eq("id",quoteModal.id);
-    await sb.from("notifications").insert({
-      user_id:quoteModal.user_id,icon:"💬",
-      message:`${biz.name} sent you a quote for request ${quoteModal.ref}`,type:"quote",
-      metadata:{request_id:quoteModal.id}
-    }).catch(()=>{});
+    // Notify user — they have a quote waiting
+    (async()=>{try{await sb.from("notifications").insert({
+      user_id:quoteModal.user_id,
+      icon:"💬",
+      message:`${biz.name} sent you a quote of ${parseFloat(price).toLocaleString()} ${COMMISSION_RATES[biz?.category]?PAYSTACK_CURRENCY||"NGN":"NGN"} for your request ${quoteModal.ref}. Tap to review and accept.`,
+      type:"quote",
+      metadata:{request_id:quoteModal.id,request_ref:quoteModal.ref,amount:parseFloat(price)}
+    });}catch{}})();
     onUpdate();setQuoteModal(null);setPrice("");setTimeline("");setQuoteNote("");setLoading(false);
   };
 
