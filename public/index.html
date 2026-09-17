@@ -842,19 +842,114 @@ function ListingScreen({biz,onUpdate}){
   const[form,setForm]=useState({name:biz?.name||"",city:biz?.city||"",phone:biz?.phone||"",description:biz?.description||""});
   const[saving,setSaving]=useState(false);
   const[saved,setSaved]=useState(false);
+  const[images,setImages]=useState([]);
+  const[uploading,setUploading]=useState(false);
+  const[uploadErr,setUploadErr]=useState("");
+  const[toast,setToast]=useState(null);
+  const showToast=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
+
+  // Load existing images from listing
+  useEffect(()=>{
+    if(biz?.listing_id){
+      sb.from("listings").select("images").eq("id",biz.listing_id).single()
+        .then(({data})=>{if(data?.images&&Array.isArray(data.images))setImages(data.images);});
+    }
+  },[biz?.listing_id]);
 
   const save=async()=>{
     setSaving(true);
     await sb.from("business_accounts").update(form).eq("id",biz.id);
-    if(biz.listing_id) await sb.from("listings").update({name:form.name,city:form.city,phone:form.phone,description:form.description}).eq("id",biz.listing_id);
-    setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),3000);onUpdate();
+    if(biz.listing_id){
+      await sb.from("listings").update({
+        name:form.name,city:form.city,phone:form.phone,
+        description:form.description
+      }).eq("id",biz.listing_id);
+    }
+    setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),3000);
+    showToast("✓ Changes saved and live on Xairod");
+    onUpdate();
+  };
+
+  const uploadImage=async(file)=>{
+    if(!file) return;
+    if(file.size>5*1024*1024){setUploadErr("Max 5MB per image.");return;}
+    if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+      setUploadErr("Only JPG, PNG or WebP allowed.");return;
+    }
+    if(images.length>=6){setUploadErr("Maximum 6 images per listing.");return;}
+    setUploading(true);setUploadErr("");
+    const ext=file.name.split(".").pop();
+    const path=`${biz.id}/${Date.now()}.${ext}`;
+    const{error:upErr}=await sb.storage.from("listing-images").upload(path,file,{upsert:false});
+    if(upErr){setUploadErr("Upload failed: "+upErr.message);setUploading(false);return;}
+    const{data:urlData}=sb.storage.from("listing-images").getPublicUrl(path);
+    const newImages=[...images,urlData.publicUrl];
+    setImages(newImages);
+    // Save to listing immediately
+    if(biz.listing_id){
+      await sb.from("listings").update({images:newImages}).eq("id",biz.listing_id);
+    }
+    showToast("Image uploaded — now visible on Xairod");
+    setUploading(false);
+  };
+
+  const deleteImage=async(url)=>{
+    const newImages=images.filter(i=>i!==url);
+    setImages(newImages);
+    if(biz.listing_id){
+      await sb.from("listings").update({images:newImages}).eq("id",biz.listing_id);
+    }
+    // Delete from storage
+    const path=url.split("/listing-images/")[1];
+    if(path) await sb.storage.from("listing-images").remove([path]);
+    showToast("Image removed");
   };
 
   return(
     <div className="content">
+      {toast&&<div className={`alert alert-${toast.type==="success"?"success":"error"}`} style={{marginBottom:16}}>{toast.msg}</div>}
       <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:20}}>My Listing</div>
-      {biz?.status==="pending"&&<div className="alert alert-warn" style={{marginBottom:16}}>⏳ Your listing is under review and will go live within 24 hours.</div>}
+      {biz?.status==="pending"&&<div className="alert alert-warn" style={{marginBottom:16}}>⏳ Your listing is under review.</div>}
       {biz?.status==="active"&&<div className="alert alert-success" style={{marginBottom:16}}>✓ Your listing is live on xairod.com</div>}
+
+      {/* IMAGE UPLOAD SECTION */}
+      <div className="card" style={{marginBottom:20}}>
+        <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Business Photos</div>
+        <div style={{fontSize:11,color:"rgba(255,255,255,0.25)",marginBottom:14}}>Up to 6 photos · JPG, PNG or WebP · Max 5MB each · First photo is your cover image</div>
+
+        {/* Image grid */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+          {images.map((url,i)=>(
+            <div key={url} style={{position:"relative",aspectRatio:"4/3",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.1)"}}>
+              <img src={url} alt={`Business photo ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              {i===0&&<div style={{position:"absolute",top:6,left:6,background:"#4DD994",color:"#03311A",fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:4}}>COVER</div>}
+              <button onClick={()=>deleteImage(url)}
+                style={{position:"absolute",top:6,right:6,width:24,height:24,borderRadius:"50%",background:"rgba(0,0,0,0.6)",border:"none",color:"white",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>
+                ×
+              </button>
+            </div>
+          ))}
+
+          {/* Upload slot */}
+          {images.length<6&&(
+            <label style={{aspectRatio:"4/3",borderRadius:10,border:"1.5px dashed rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.02)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:6}}>
+              <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}}
+                onChange={e=>e.target.files[0]&&uploadImage(e.target.files[0])} disabled={uploading}/>
+              <div style={{fontSize:24}}>{uploading?"⏳":"📷"}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontWeight:600,textAlign:"center"}}>
+                {uploading?"Uploading…":"Add Photo"}
+              </div>
+            </label>
+          )}
+        </div>
+
+        {uploadErr&&<div style={{fontSize:11,color:"#E74C3C",marginBottom:8,padding:"6px 10px",background:"rgba(192,57,43,0.1)",borderRadius:6}}>⚠️ {uploadErr}</div>}
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.2)"}}>
+          Photos appear in your listing on xairod.com immediately after upload. First photo is used as your cover image.
+        </div>
+      </div>
+
+      {/* BUSINESS DETAILS */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
         <div className="card">
           <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:1,marginBottom:16}}>Business Details</div>
@@ -868,7 +963,6 @@ function ListingScreen({biz,onUpdate}){
           ))}
           <div className="form-group"><label className="label">Description</label>
             <textarea className="input" rows={4} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></div>
-          {saved&&<div className="alert alert-success">✓ Saved successfully</div>}
           <button className="btn-primary" onClick={save} disabled={saving} style={{width:"100%"}}>{saving?"Saving…":"Save Changes"}</button>
         </div>
         <div>
