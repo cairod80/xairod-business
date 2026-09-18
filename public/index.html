@@ -15,7 +15,20 @@ body{font-family:'Outfit',sans-serif;background:#0D0A05;color:#FEFCF7;min-height
 input,textarea,select{font-family:'Outfit',sans-serif;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
-.sidebar{width:220px;background:#141008;border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;}
+.sidebar{width:220px;background:#141008;border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;transition:transform 0.25s ease;}
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%);}
+      .sidebar.open{transform:translateX(0);}
+      .sidebar-overlay.open{display:block;}
+      .main{margin-left:0!important;}
+      .mobile-header{display:flex!important;}
+      .stat-grid{grid-template-columns:1fr 1fr!important;}
+      .content{padding:14px!important;}
+      table{font-size:11px;}
+      .hide-mobile{display:none!important;}
+    }
+    .mobile-header{display:none;background:#141008;padding:12px 16px;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);position:fixed;top:0;left:0;right:0;z-index:98;}
 .main-wrap{margin-left:220px;min-height:100vh;}
 .topbar{background:#141008;border-bottom:1px solid rgba(255,255,255,0.06);padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .content{padding:24px 28px 48px;}
@@ -450,7 +463,7 @@ function Sidebar({page,setPage,biz,newLeads,onSignOut}){
     {id:"settings",  icon:"⚙️", label:"Settings"},
   ];
   return(
-    <div className="sidebar">
+    <div className={"sidebar"+(sidebarOpen?" open":"")}>
       <div style={{padding:"20px 18px 16px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
         <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900}}>
           <span style={{color:"#4DD994"}}>X</span>airod<span style={{color:"#C8861A"}}>.</span>
@@ -783,6 +796,21 @@ function BookingsScreen({biz,bookings,onUpdate}){
 
 // ── PAYOUTS ───────────────────────────────────────────────────────────────────
 function PayoutsScreen({biz,bookings}){
+  const[bankForm,setBankForm]=React.useState({account_name:"",account_number:"",bank_name:"",currency:"NGN",paystack_recipient_code:""});
+  const[bankSaving,setBankSaving]=React.useState(false);
+  const[bankSaved,setBankSaved]=React.useState(false);
+
+  React.useEffect(()=>{
+    if(!biz?.id) return;
+    sb.from("business_accounts").select("payout_account").eq("id",biz.id).single()
+      .then(({data})=>{if(data?.payout_account) setBankForm(data.payout_account);});
+  },[biz?.id]);
+
+  const saveBankDetails=async()=>{
+    setBankSaving(true);
+    await sb.from("business_accounts").update({payout_account:bankForm}).eq("id",biz.id);
+    setBankSaving(false);setBankSaved(true);setTimeout(()=>setBankSaved(false),3000);
+  };
   const completed=bookings.filter(b=>b.status==="completed");
   const pending=bookings.filter(b=>b.status==="awaiting_confirmation");
   const totalEarned=completed.reduce((s,b)=>s+(b.payout_amount||0),0);
@@ -792,6 +820,44 @@ function PayoutsScreen({biz,bookings}){
   return(
     <div className="content">
       <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:20}}>Payouts</div>
+
+      {/* ── PAYOUT ACCOUNT DETAILS ── */}
+      <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,marginBottom:22}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7"}}>💳 Payout Account Details</div>
+          {bankSaved&&<span style={{fontSize:10,color:"#4DD994",fontWeight:700}}>✓ Saved</span>}
+        </div>
+        <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:16}}>Add your bank account so Xairod can process your commission payouts. Visible only to Xairod admins.</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+          <div><label className="label">Account Name</label>
+            <input className="input" value={bankForm.account_name} onChange={e=>setBankForm({...bankForm,account_name:e.target.value})} placeholder="As registered with your bank"/></div>
+          <div><label className="label">Account Number</label>
+            <input className="input" value={bankForm.account_number} onChange={e=>setBankForm({...bankForm,account_number:e.target.value})} placeholder="10-digit NUBAN" maxLength={10}/></div>
+          <div><label className="label">Bank Name</label>
+            <select className="input" value={bankForm.bank_name} onChange={e=>setBankForm({...bankForm,bank_name:e.target.value})}>
+              <option value="">Select bank…</option>
+              {["Access Bank","First Bank","GTBank","UBA","Zenith Bank","Fidelity Bank","FCMB","Sterling Bank","Stanbic IBTC","Kuda Bank","Opay","Palmpay","CIB Egypt","Banque Misr","QNB Egypt","Other"].map(b=><option key={b} value={b}>{b}</option>)}
+            </select></div>
+          <div><label className="label">Currency</label>
+            <select className="input" value={bankForm.currency} onChange={e=>setBankForm({...bankForm,currency:e.target.value})}>
+              <option value="NGN">NGN — Nigerian Naira</option>
+              <option value="EGP">EGP — Egyptian Pound</option>
+              <option value="USD">USD — US Dollar</option>
+            </select></div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label className="label">Paystack Recipient Code (optional)</label>
+          <input className="input" value={bankForm.paystack_recipient_code} onChange={e=>setBankForm({...bankForm,paystack_recipient_code:e.target.value})} placeholder="RCP_xxxxxxxxxxxx — from your Paystack dashboard"/>
+        </div>
+        <div style={{background:"rgba(77,217,148,0.05)",border:"1px solid rgba(77,217,148,0.1)",borderRadius:8,padding:"10px 12px",marginBottom:14,fontSize:11,color:"rgba(255,255,255,0.35)",lineHeight:1.6}}>
+          🔒 Encrypted and visible only to Xairod admins. Used solely to process your commission payouts after completed transactions.
+        </div>
+        <button onClick={saveBankDetails} disabled={bankSaving}
+          style={{padding:"10px 20px",borderRadius:9,border:"none",background:"#4DD994",color:"#03311A",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>
+          {bankSaving?"Saving…":"Save Payout Details"}
+        </button>
+      </div>
+
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:22}}>
         {[
           {label:"Total Earned",value:`${totalEarned.toLocaleString()} EGP`,cls:"stat-green",sub:"After commission"},
@@ -1229,6 +1295,7 @@ function App(){
   const[requests,setRequests]=useState([]);
   const[bookings,setBookings]=useState([]);
   const[loading,setLoading]=useState(true);
+  const[sidebarOpen,setSidebarOpen]=useState(false);
 
   useEffect(()=>{
     sb.auth.getSession().then(async({data:{session}})=>{
