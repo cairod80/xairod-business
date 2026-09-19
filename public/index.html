@@ -453,6 +453,7 @@ function AuthScreen({onAuth}){
 function Sidebar({page,setPage,biz,newLeads,onSignOut}){
   const nav=[
     {id:"dashboard", icon:"⊞", label:"Dashboard"},
+    {id:"messages",  icon:"💬", label:"Messages",   badge:newMessages},
     {id:"requests",  icon:"📥", label:"Requests",   badge:newLeads},
     {id:"bookings",  icon:"✅", label:"Bookings"},
     {id:"services",  icon:"🛎️", label:"Services"},
@@ -1051,6 +1052,229 @@ function ListingScreen({biz,onUpdate}){
     </div>
   );
 }
+
+
+    // Content filter — same rules as the user app
+    function filterContent(text){
+      const patterns=[
+        {re:/(\+?\d[\d\s\-\(\)]{7,}\d)/g,          reason:"phone number"},
+        {re:/[\w.\-]+@[\w.\-]+\.\w+/g,              reason:"email address"},
+        {re:/whatsapp|telegram|signal/gi,            reason:"external messaging app"},
+        {re:/zelle|venmo|cashapp|western.?union/gi,  reason:"external payment method"},
+        {re:/pay.{0,10}(cash|outside|direct)/gi,     reason:"off-platform payment request"},
+      ];
+      for(const p of patterns){
+        if(p.re.test(text)) return {blocked:true,reason:"Blocked: message contains "+p.reason+". All communication must stay on Xairod."};
+      }
+      return {blocked:false};
+    }
+
+
+    // ── BUSINESS MESSAGES SCREEN ──────────────────────────────────────────────
+    function BusinessMessagesScreen({biz}){
+      const[rooms,setRooms]=React.useState([]);
+      const[loading,setLoading]=React.useState(true);
+      const[activeRoom,setActiveRoom]=React.useState(null);
+      const[messages,setMessages]=React.useState([]);
+      const[input,setInput]=React.useState("");
+      const[sending,setSending]=React.useState(false);
+      const[filterWarn,setFilterWarn]=React.useState("");
+      const[showPayCard,setShowPayCard]=React.useState(false);
+      const[payAmount,setPayAmount]=React.useState("");
+      const bottomRef=React.useRef(null);
+
+      React.useEffect(()=>{
+        if(!biz?.user_id) return;
+        sb.from("chat_rooms")
+          .select("*")
+          .eq("business_user_id",biz.user_id)
+          .eq("status","active")
+          .order("created_at",{ascending:false})
+          .then(({data})=>{if(data)setRooms(data);setLoading(false);});
+      },[biz?.user_id]);
+
+      const openRoom=async(room)=>{
+        setActiveRoom(room);
+        const{data}=await sb.from("direct_messages")
+          .select("*").eq("room_id",room.id)
+          .order("created_at",{ascending:true});
+        setMessages(data||[]);
+        // Mark as read
+        await sb.from("direct_messages")
+          .update({read_by_business:true})
+          .eq("room_id",room.id).eq("sender_role","customer");
+        // Subscribe realtime
+        sb.channel("biz_room_"+room.id)
+          .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"room_id=eq."+room.id},
+            payload=>{setMessages(prev=>[...prev,payload.new]);setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);})
+          .subscribe();
+        setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),200);
+      };
+
+      const send=async()=>{
+        const text=input.trim();
+        if(!text||sending||!activeRoom) return;
+        const check=filterContent(text);
+        if(check.blocked){setFilterWarn(check.reason);setTimeout(()=>setFilterWarn(""),5000);return;}
+        setSending(true);setFilterWarn("");
+        const{data:msg}=await sb.from("direct_messages").insert({
+          room_id:activeRoom.id,
+          sender_id:biz.user_id,
+          sender_role:"business",
+          content:text,type:"text",
+          read_by_customer:false,read_by_business:true,
+        }).select().single();
+        if(msg) setMessages(prev=>[...prev,msg]);
+        // Notify customer
+        await sb.from("notifications").insert({
+          user_id:activeRoom.customer_id,icon:"💬",
+          message:biz.name+" sent you a message. Tap to read.",
+          type:"direct_message",metadata:{room_id:activeRoom.id}
+        });
+        setInput("");setSending(false);
+        setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);
+      };
+
+      const sendPayCard=async()=>{
+        if(!payAmount||isNaN(payAmount)) return;
+        const{data:msg}=await sb.from("direct_messages").insert({
+          room_id:activeRoom.id,sender_id:biz.user_id,sender_role:"business",
+          content:"Payment request: "+parseFloat(payAmount).toLocaleString()+" NGN",
+          type:"payment_card",
+          metadata:{amount:parseFloat(payAmount),currency:"NGN"},
+          read_by_customer:false,read_by_business:true,
+        }).select().single();
+        if(msg) setMessages(prev=>[...prev,msg]);
+        setShowPayCard(false);setPayAmount("");
+        await sb.from("notifications").insert({
+          user_id:activeRoom.customer_id,icon:"💳",
+          message:biz.name+" sent you a payment request of "+parseFloat(payAmount).toLocaleString()+" NGN.",
+          type:"payment_card",metadata:{room_id:activeRoom.id}
+        });
+        setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);
+      };
+
+      // ── Room list view ───────────────────────────────────────────────────
+      if(!activeRoom) return(
+        <div style={{padding:"24px 28px 48px"}}>
+          <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:4}}>Messages</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:20}}>Direct conversations with your customers — routed through Xairod</div>
+          {loading?<div style={{color:"rgba(255,255,255,0.3)",padding:40,textAlign:"center"}}>Loading…</div>:
+          rooms.length===0?(
+            <div style={{textAlign:"center",padding:"48px 0"}}>
+              <div style={{fontSize:48,marginBottom:12}}>💬</div>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:800,color:"rgba(255,255,255,0.4)",marginBottom:6}}>No conversations yet</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,0.25)"}}>When you send a quote to a customer, a chat room opens here automatically.</div>
+            </div>
+          ):rooms.map(room=>(
+            <div key={room.id} onClick={()=>openRoom(room)}
+              style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+              <div style={{width:44,height:44,borderRadius:"50%",background:"rgba(77,217,148,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#FEFCF7",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{room.listing_name||"Customer Request"}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginTop:2}}>Tap to open conversation</div>
+              </div>
+              <div style={{color:"rgba(255,255,255,0.3)",fontSize:18}}>›</div>
+            </div>
+          ))}
+        </div>
+      );
+
+      // ── Active room chat view ────────────────────────────────────────────
+      return(
+        <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 58px)"}}>
+          {/* Header */}
+          <div style={{background:"#03311A",padding:"14px 20px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+            <button onClick={()=>{setActiveRoom(null);setMessages([]);sb.removeAllChannels();}}
+              style={{background:"none",border:"none",color:"white",fontSize:20,cursor:"pointer"}}>←</button>
+            <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>👤</div>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:"'Fraunces',serif",fontSize:14,fontWeight:800,color:"white"}}>{activeRoom.listing_name||"Customer"}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>Protected by Xairod · Messages are monitored</div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div style={{flex:1,overflowY:"auto",padding:"14px 20px"}}>
+            <div style={{textAlign:"center",marginBottom:14,padding:"8px 12px",background:"rgba(77,217,148,0.05)",borderRadius:8,border:"1px solid rgba(77,217,148,0.1)"}}>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",lineHeight:1.5}}>🔒 All messages are monitored by Xairod. Do not share contact details or request off-platform payments.</div>
+            </div>
+            {messages.map((msg,i)=>{
+              const isMe=msg.sender_role==="business";
+              if(msg.type==="quote_card"){
+                const m=msg.metadata||{};
+                return(
+                  <div key={msg.id||i} style={{marginBottom:14}}>
+                    <div style={{background:"rgba(200,134,26,0.1)",border:"1.5px solid rgba(200,134,26,0.2)",borderRadius:12,padding:"12px 14px",maxWidth:"85%",margin:"0 auto"}}>
+                      <div style={{fontSize:9,fontWeight:800,color:"#C8861A",textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>💼 Quote Sent</div>
+                      <div style={{fontFamily:"'Fraunces',serif",fontSize:20,fontWeight:900,color:"#FEFCF7"}}>{parseFloat(m.price||0).toLocaleString()} {m.currency||"NGN"}</div>
+                      {m.notes&&<div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:4}}>{m.notes}</div>}
+                      <div style={{fontSize:9,color:"rgba(255,255,255,0.25)",marginTop:6}}>{new Date(msg.created_at).toLocaleString()}</div>
+                    </div>
+                  </div>
+                );
+              }
+              if(msg.type==="payment_card"){
+                const m=msg.metadata||{};
+                return(
+                  <div key={msg.id||i} style={{marginBottom:10,display:"flex",justifyContent:"flex-end"}}>
+                    <div style={{background:"rgba(10,107,62,0.15)",border:"1px solid rgba(77,217,148,0.2)",borderRadius:12,padding:"10px 14px",maxWidth:"75%"}}>
+                      <div style={{fontSize:9,fontWeight:800,color:"#4DD994",marginBottom:4}}>💳 Payment Request Sent</div>
+                      <div style={{fontFamily:"'Fraunces',serif",fontSize:18,fontWeight:900,color:"#4DD994"}}>{parseFloat(m.amount||0).toLocaleString()} {m.currency||"NGN"}</div>
+                      <div style={{fontSize:9,color:"rgba(255,255,255,0.25)",marginTop:4}}>{new Date(msg.created_at).toLocaleString()}</div>
+                    </div>
+                  </div>
+                );
+              }
+              return(
+                <div key={msg.id||i} style={{marginBottom:8,display:"flex",justifyContent:isMe?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"78%"}}>
+                    {!isMe&&<div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.4)",marginBottom:2}}>Customer</div>}
+                    <div style={{background:isMe?"#0A6B3E":"rgba(255,255,255,0.07)",color:"#FEFCF7",padding:"9px 13px",borderRadius:isMe?"12px 12px 4px 12px":"12px 12px 12px 4px",fontSize:12,lineHeight:1.5}}>
+                      {msg.flagged?<span style={{color:"#E74C3C",fontStyle:"italic"}}>⚠️ Blocked by platform</span>:msg.content}
+                    </div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.2)",marginTop:2,textAlign:isMe?"right":"left"}}>
+                      {new Date(msg.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
+                      {isMe&&" · "}{isMe&&(msg.read_by_customer?"Seen":"Sent")}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={bottomRef}/>
+          </div>
+
+          {/* Filter warning */}
+          {filterWarn&&<div style={{margin:"0 20px 8px",padding:"8px 12px",background:"rgba(192,57,43,0.1)",border:"1px solid rgba(192,57,43,0.2)",borderRadius:8,fontSize:11,color:"#E74C3C",lineHeight:1.5}}>⚠️ {filterWarn}</div>}
+
+          {/* Pay card input */}
+          {showPayCard&&(
+            <div style={{margin:"0 20px 8px",padding:"12px",background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,display:"flex",gap:8,alignItems:"center"}}>
+              <input value={payAmount} onChange={e=>setPayAmount(e.target.value)} type="number" placeholder="Amount (NGN)"
+                style={{flex:1,padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:"#FEFCF7",fontFamily:"Outfit,sans-serif",fontSize:12,outline:"none"}}/>
+              <button onClick={sendPayCard} style={{padding:"8px 14px",borderRadius:8,border:"none",background:"#4DD994",color:"#03311A",fontWeight:800,fontSize:11,cursor:"pointer",fontFamily:"Outfit,sans-serif"}}>Send</button>
+              <button onClick={()=>setShowPayCard(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.3)",cursor:"pointer",fontSize:18}}>×</button>
+            </div>
+          )}
+
+          {/* Input bar */}
+          <div style={{padding:"10px 20px 20px",background:"#141008",borderTop:"1px solid rgba(255,255,255,0.06)",flexShrink:0,display:"flex",gap:8,alignItems:"flex-end"}}>
+            <button onClick={()=>setShowPayCard(!showPayCard)}
+              style={{width:40,height:40,borderRadius:9,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.04)",cursor:"pointer",fontSize:16,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              💳
+            </button>
+            <textarea value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+              placeholder="Type a message to your customer…" rows={2}
+              style={{flex:1,padding:"10px 12px",borderRadius:10,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:"#FEFCF7",fontFamily:"Outfit,sans-serif",fontSize:13,resize:"none",outline:"none"}}/>
+            <button onClick={send} disabled={!input.trim()||sending}
+              style={{padding:"0 16px",height:44,borderRadius:10,border:"none",background:input.trim()?"#4DD994":"rgba(255,255,255,0.08)",color:input.trim()?"#03311A":"rgba(255,255,255,0.3)",fontWeight:800,fontSize:14,cursor:input.trim()?"pointer":"default",flexShrink:0,fontFamily:"Outfit,sans-serif"}}>
+              {sending?"…":"Send →"}
+            </button>
+          </div>
+        </div>
+      );
+    }
 
 
     // ── SERVICES SCREEN ───────────────────────────────────────────────────────
