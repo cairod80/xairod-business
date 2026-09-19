@@ -664,19 +664,24 @@ function RequestsScreen({biz,requests,onUpdate,onGoToMessages}){
   const[rooms,setRooms]=useState({}); // request_id → room
   const[unreadCounts,setUnreadCounts]=useState({}); // room_id → count
 
-  // Load chat rooms for all requests
+  // Load chat rooms for all requests — robust, no .single()
   React.useEffect(()=>{
     if(!biz?.user_id||!requests.length) return;
     const ids=requests.map(r=>r.id);
-    sb.from("chat_rooms").select("*").in("request_id",ids)
-      .then(({data})=>{
-        if(!data) return;
-        const map={};data.forEach(r=>{map[r.request_id]=r;});setRooms(map);
-        // Get unread counts per room
-        const roomIds=data.map(r=>r.id);
+    sb.from("chat_rooms")
+      .select("*")
+      .in("request_id",ids)
+      .then(({data,error})=>{
+        if(error){console.warn("chat_rooms query error:",error.message);return;}
+        const map={};
+        (data||[]).forEach(r=>{map[r.request_id]=r;});
+        setRooms(map);
+        const roomIds=(data||[]).map(r=>r.id);
         if(roomIds.length>0){
-          sb.from("direct_messages").select("room_id")
-            .in("room_id",roomIds).eq("read_by_business",false)
+          sb.from("direct_messages")
+            .select("room_id")
+            .in("room_id",roomIds)
+            .eq("read_by_business",false)
             .neq("sender_role","business")
             .then(({data:msgs})=>{
               const counts={};
@@ -694,32 +699,65 @@ function RequestsScreen({biz,requests,onUpdate,onGoToMessages}){
     const gross=parseFloat(price);
     const commAmt=Math.round(gross*commission/100);
     const payout=gross-commAmt;
+
+    // 1. Insert quote
     await sb.from("quotes").insert({
       request_id:quoteModal.id,business_id:biz.id,
       price:gross,commission_rate:commission,commission_amount:commAmt,payout_amount:payout,
       timeline,notes:quoteNote,status:"pending"
     });
+
+    // 2. Update request status
     await sb.from("service_requests").update({status:"quoted"}).eq("id",quoteModal.id);
-    // Ensure chat room exists for this request (DB trigger may also do this)
-    const{data:existingRoom}=await sb.from("chat_rooms").select("id").eq("request_id",quoteModal.id).single().catch(()=>({data:null}));
-    if(!existingRoom){
-      await sb.from("chat_rooms").insert({
-        request_id:quoteModal.id,
-        customer_id:quoteModal.user_id,
-        business_id:biz.id,
-        business_user_id:biz.user_id,
-        listing_name:quoteModal.listing_name||biz.name,
+
+    // 3. Create chat room directly — no trigger needed
+    // Check if room already exists for this request
+    const{data:existingRooms}=await sb.from("chat_rooms")
+      .select("id")
+      .eq("request_id",quoteModal.id)
+      .limit(1);
+
+    let roomId=existingRooms?.[0]?.id||null;
+
+    if(!roomId){
+      const{data:newRoom}=await sb.from("chat_rooms").insert({
+        request_id:  quoteModal.id,
+        customer_id: quoteModal.user_id,
+        business_id: biz.id,
+        business_user_id: biz.user_id,
+        listing_name: quoteModal.listing_name||quoteModal.ref||biz.name,
         status:"active",
-      }).catch(()=>{});
+      }).select("id").single();
+      roomId=newRoom?.id||null;
     }
-    // Notify user — they have a quote waiting
+
+    // 4. Send quote as first message in chat room
+    if(roomId){
+      await sb.from("direct_messages").insert({
+        room_id:     roomId,
+        sender_id:   biz.user_id,
+        sender_role: "business",
+        content:     `Quote sent for ${quoteModal.listing_name||"your request"}`,
+        type:        "quote_card",
+        metadata:{
+          price:gross,currency:"NGN",
+          timeline,notes:quoteNote,
+          quote_id:null,
+          request_ref:quoteModal.ref,
+        },
+        read_by_customer:false,
+        read_by_business:true,
+      });
+    }
+
+    // 5. Notify customer
     (async()=>{try{await sb.from("notifications").insert({
-      user_id:quoteModal.user_id,
-      icon:"💬",
-      message:`${biz.name} sent you a quote of ${parseFloat(price).toLocaleString()} NGN for your request ${quoteModal.ref}. Tap to review and accept — you can also chat with them directly.`,
+      user_id:quoteModal.user_id,icon:"💬",
+      message:`${biz.name} sent you a quote of ${gross.toLocaleString()} NGN for request ${quoteModal.ref}. Open your Chat tab to view and respond.`,
       type:"quote",
-      metadata:{request_id:quoteModal.id,request_ref:quoteModal.ref,amount:parseFloat(price)}
+      metadata:{request_id:quoteModal.id,request_ref:quoteModal.ref,amount:gross,room_id:roomId}
     });}catch{}})();
+
     onUpdate();setQuoteModal(null);setPrice("");setTimeline("");setQuoteNote("");setLoading(false);
   };
 
@@ -977,8 +1015,11 @@ function PayoutsScreen({biz,bookings}){
           </div>
         ))}
       </div>
-      <div className="alert alert-warn" style={{marginBottom:20}}>
-        Xairod uses <strong>Paystack</strong> to process all transactions. Your commission is held securely after each completed booking and released every Friday. Add your bank account details below to receive payouts directly.
+      <div style={{background:"rgba(77,217,148,0.07)",border:"1px solid rgba(77,217,148,0.15)",borderRadius:10,padding:"12px 16px",marginBottom:20,display:"flex",gap:10,alignItems:"center"}}>
+        <span style={{fontSize:20}}>✅</span>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",lineHeight:1.6}}>
+          <strong style={{color:"#4DD994"}}>Paystack is live.</strong> All customer payments on Xairod are processed via Paystack. Your commission is held securely and released every Friday to your bank account below.
+        </div>
       </div>
       {completed.length===0?(
         <div className="empty-state">
