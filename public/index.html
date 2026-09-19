@@ -521,7 +521,35 @@ function Dashboard({biz,requests,bookings,setPage}){
 
   return(
     <div className="content">
-      {biz?.status==="pending"&&<div className="alert alert-warn" style={{marginBottom:20}}>⏳ Your listing is under review. You'll start receiving requests once approved.</div>}
+      {biz?.status==="pending"&&(
+        <div style={{marginBottom:20}}>
+          <div className="alert alert-warn" style={{marginBottom:12}}>⏳ Your listing is under review. You'll start receiving requests once our team approves your account.</div>
+          <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20}}>
+            <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7",marginBottom:4}}>📋 Account Verification Checklist</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginBottom:14}}>Our team reviews the following before activating your listing:</div>
+            {[
+              ["Business Registration / Trade Licence","Submitted with your application"],
+              ["Owner / Director ID","Submitted with your application"],
+              ["Professional Licence (if applicable)","Submitted with your application"],
+              ["Due Diligence Declarations","Signed during registration"],
+              ["Payout Bank Account","Add in Payouts tab →"],
+            ].map(([item,status],i)=>(
+              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"9px 0",borderBottom:i<4?"1px solid rgba(255,255,255,0.05)":"none"}}>
+                <div style={{width:18,height:18,borderRadius:"50%",background:i<4?"rgba(77,217,148,0.15)":"rgba(200,134,26,0.15)",border:"1.5px solid",borderColor:i<4?"rgba(77,217,148,0.3)":"rgba(200,134,26,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,flexShrink:0,marginTop:1}}>
+                  {i<4?"✓":"!"}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"#FEFCF7"}}>{item}</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>{status}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{marginTop:14,padding:"10px 12px",background:"rgba(10,107,62,0.07)",borderRadius:8,fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.6}}>
+              ✉️ Questions? Email <strong style={{color:"#4DD994"}}>hello@xairod.com</strong> with your business name and registration reference.
+            </div>
+          </div>
+        </div>
+      )}
       {newReqs>0&&(
         <div style={{background:"rgba(200,134,26,0.1)",border:"1px solid rgba(200,134,26,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{fontSize:12,color:"#F5C550",fontWeight:600}}>⚡ {newReqs} new request{newReqs>1?"s":""} waiting — respond within 24h</div>
@@ -626,13 +654,38 @@ function Dashboard({biz,requests,bookings,setPage}){
 }
 
 // ── REQUESTS ──────────────────────────────────────────────────────────────────
-function RequestsScreen({biz,requests,onUpdate}){
+function RequestsScreen({biz,requests,onUpdate,onGoToMessages}){
   const[quoteModal,setQuoteModal]=useState(null);
   const[price,setPrice]=useState("");
   const[timeline,setTimeline]=useState("");
   const[quoteNote,setQuoteNote]=useState("");
   const[loading,setLoading]=useState(false);
   const[err,setErr]=useState("");
+  const[rooms,setRooms]=useState({}); // request_id → room
+  const[unreadCounts,setUnreadCounts]=useState({}); // room_id → count
+
+  // Load chat rooms for all requests
+  React.useEffect(()=>{
+    if(!biz?.user_id||!requests.length) return;
+    const ids=requests.map(r=>r.id);
+    sb.from("chat_rooms").select("*").in("request_id",ids)
+      .then(({data})=>{
+        if(!data) return;
+        const map={};data.forEach(r=>{map[r.request_id]=r;});setRooms(map);
+        // Get unread counts per room
+        const roomIds=data.map(r=>r.id);
+        if(roomIds.length>0){
+          sb.from("direct_messages").select("room_id")
+            .in("room_id",roomIds).eq("read_by_business",false)
+            .neq("sender_role","business")
+            .then(({data:msgs})=>{
+              const counts={};
+              (msgs||[]).forEach(m=>{counts[m.room_id]=(counts[m.room_id]||0)+1;});
+              setUnreadCounts(counts);
+            });
+        }
+      });
+  },[requests.length,biz?.user_id]);
 
   const submitQuote=async()=>{
     if(!price||!timeline){setErr("Price and timeline required.");return;}
@@ -647,11 +700,23 @@ function RequestsScreen({biz,requests,onUpdate}){
       timeline,notes:quoteNote,status:"pending"
     });
     await sb.from("service_requests").update({status:"quoted"}).eq("id",quoteModal.id);
+    // Ensure chat room exists for this request (DB trigger may also do this)
+    const{data:existingRoom}=await sb.from("chat_rooms").select("id").eq("request_id",quoteModal.id).single().catch(()=>({data:null}));
+    if(!existingRoom){
+      await sb.from("chat_rooms").insert({
+        request_id:quoteModal.id,
+        customer_id:quoteModal.user_id,
+        business_id:biz.id,
+        business_user_id:biz.user_id,
+        listing_name:quoteModal.listing_name||biz.name,
+        status:"active",
+      }).catch(()=>{});
+    }
     // Notify user — they have a quote waiting
     (async()=>{try{await sb.from("notifications").insert({
       user_id:quoteModal.user_id,
       icon:"💬",
-      message:`${biz.name} sent you a quote of ${parseFloat(price).toLocaleString()} ${COMMISSION_RATES[biz?.category]?PAYSTACK_CURRENCY||"NGN":"NGN"} for your request ${quoteModal.ref}. Tap to review and accept.`,
+      message:`${biz.name} sent you a quote of ${parseFloat(price).toLocaleString()} NGN for your request ${quoteModal.ref}. Tap to review and accept — you can also chat with them directly.`,
       type:"quote",
       metadata:{request_id:quoteModal.id,request_ref:quoteModal.ref,amount:parseFloat(price)}
     });}catch{}})();
@@ -689,8 +754,48 @@ function RequestsScreen({biz,requests,onUpdate}){
               <button className="btn-red" onClick={async()=>{await sb.from("service_requests").update({status:"declined"}).eq("id",req.id);onUpdate();}}>Decline</button>
             </div>
           )}
-          {req.status==="quoted"&&<div style={{fontSize:11,color:"#F5C550",fontWeight:600}}>⏳ Waiting for user to accept your quote</div>}
-          {(req.status==="in_progress"||req.status==="accepted")&&<div style={{fontSize:11,color:"#4DD994",fontWeight:600}}>✅ Accepted — deliver the service</div>}
+          {req.status==="quoted"&&(
+            <div>
+              <div style={{fontSize:11,color:"#F5C550",fontWeight:600,marginBottom:8}}>⏳ Quote sent — waiting for user to accept</div>
+              {rooms[req.id]?(
+                <button onClick={()=>onGoToMessages&&onGoToMessages(rooms[req.id])}
+                  style={{display:"flex",alignItems:"center",gap:8,background:"rgba(77,217,148,0.08)",border:"1px solid rgba(77,217,148,0.2)",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",width:"100%"}}>
+                  <span style={{fontSize:14}}>💬</span>
+                  <div style={{flex:1,textAlign:"left"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#4DD994"}}>Chat with customer</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.3)"}}>Customer may have already sent a message</div>
+                  </div>
+                  {unreadCounts[rooms[req.id]?.id]>0&&(
+                    <span style={{background:"#C0392B",color:"white",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:10}}>
+                      {unreadCounts[rooms[req.id]?.id]} new
+                    </span>
+                  )}
+                </button>
+              ):(
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.25)"}}>Chat opens when user responds</div>
+              )}
+            </div>
+          )}
+          {(req.status==="in_progress"||req.status==="accepted")&&(
+            <div>
+              <div style={{fontSize:11,color:"#4DD994",fontWeight:600,marginBottom:8}}>✅ Accepted — deliver the service</div>
+              {rooms[req.id]&&(
+                <button onClick={()=>onGoToMessages&&onGoToMessages(rooms[req.id])}
+                  style={{display:"flex",alignItems:"center",gap:8,background:"rgba(77,217,148,0.08)",border:"1px solid rgba(77,217,148,0.2)",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",width:"100%"}}>
+                  <span style={{fontSize:14}}>💬</span>
+                  <div style={{flex:1,textAlign:"left"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#4DD994"}}>Message customer</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.3)"}}>Coordinate delivery</div>
+                  </div>
+                  {unreadCounts[rooms[req.id]?.id]>0&&(
+                    <span style={{background:"#C0392B",color:"white",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:10}}>
+                      {unreadCounts[rooms[req.id]?.id]} new
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
 
@@ -873,7 +978,7 @@ function PayoutsScreen({biz,bookings}){
         ))}
       </div>
       <div className="alert alert-warn" style={{marginBottom:20}}>
-        <strong>Paystack integration coming soon.</strong> Payouts are currently processed manually every Friday. Bank account details can be submitted via hello@xairod.com.
+        Xairod uses <strong>Paystack</strong> to process all transactions. Your commission is held securely after each completed booking and released every Friday. Add your bank account details below to receive payouts directly.
       </div>
       {completed.length===0?(
         <div className="empty-state">
@@ -976,7 +1081,16 @@ function ListingScreen({biz,onUpdate}){
     <div className="content">
       {toast&&<div className={`alert alert-${toast.type==="success"?"success":"error"}`} style={{marginBottom:16}}>{toast.msg}</div>}
       <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:20}}>My Listing</div>
-      {biz?.status==="pending"&&<div className="alert alert-warn" style={{marginBottom:16}}>⏳ Your listing is under review.</div>}
+      {biz?.status==="pending"&&(
+        <div>
+          <div className="alert alert-warn" style={{marginBottom:12}}>
+            ⏳ Your listing is under review — expected activation within 24 hours.
+          </div>
+          <div style={{background:"rgba(200,134,26,0.07)",border:"1px solid rgba(200,134,26,0.15)",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.7}}>
+            📋 <strong style={{color:"#F5C550"}}>What's being reviewed:</strong> Your KYC documents, business registration and due diligence declarations submitted during registration. You can already fill in your business details and upload photos below — they will go live the moment your account is approved.
+          </div>
+        </div>
+      )}
       {biz?.status==="active"&&<div className="alert alert-success" style={{marginBottom:16}}>✓ Your listing is live on xairod.com</div>}
 
       {/* IMAGE UPLOAD SECTION */}
@@ -1091,6 +1205,10 @@ function ListingScreen({biz,onUpdate}){
           .eq("status","active")
           .order("created_at",{ascending:false})
           .then(({data})=>{if(data)setRooms(data);setLoading(false);});
+        // Listen for direct room open from Requests screen
+        const handler=(e)=>openRoom(e.detail);
+        window.addEventListener("openRoom",handler);
+        return()=>window.removeEventListener("openRoom",handler);
       },[biz?.user_id]);
 
       const openRoom=async(room)=>{
