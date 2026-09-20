@@ -1186,12 +1186,27 @@ function ListingScreen({biz,onUpdate}){
 
       React.useEffect(()=>{
         if(!biz?.user_id) return;
-        sb.from("chat_rooms")
-          .select("*")
-          .eq("business_user_id",biz.user_id)
-          .eq("status","active")
-          .order("created_at",{ascending:false})
-          .then(({data})=>{if(data)setRooms(data);setLoading(false);});
+        // Query by BOTH business_user_id AND business_id
+        // Catches rooms where business_user_id wasn't set due to timing issues
+        const loadRooms=async()=>{
+          const{data,error}=await sb.from("chat_rooms")
+            .select("*")
+            .or(`business_user_id.eq.${biz.user_id},business_id.eq.${biz.id}`)
+            .eq("status","active")
+            .order("created_at",{ascending:false});
+          if(error){console.warn("Rooms load error:",error.message);setLoading(false);return;}
+          if(data&&data.length>0){
+            // Auto-fix any rooms missing business_user_id
+            for(const room of data){
+              if(!room.business_user_id){
+                await sb.from("chat_rooms").update({business_user_id:biz.user_id}).eq("id",room.id);
+              }
+            }
+            setRooms(data);
+          }
+          setLoading(false);
+        };
+        loadRooms();
         // Listen for direct room open from Requests screen
         const handler=(e)=>openRoom(e.detail);
         window.addEventListener("openRoom",handler);
