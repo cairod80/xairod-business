@@ -710,52 +710,12 @@ function RequestsScreen({biz,requests,onUpdate,onGoToMessages}){
     // 2. Update request status
     await sb.from("service_requests").update({status:"quoted"}).eq("id",quoteModal.id);
 
-    // 3. Create chat room directly — no trigger needed
-    // Check if room already exists for this request
-    const{data:existingRooms}=await sb.from("chat_rooms")
-      .select("id")
-      .eq("request_id",quoteModal.id)
-      .limit(1);
-
-    let roomId=existingRooms?.[0]?.id||null;
-
-    if(!roomId){
-      const{data:newRoom}=await sb.from("chat_rooms").insert({
-        request_id:  quoteModal.id,
-        customer_id: quoteModal.user_id,
-        business_id: biz.id,
-        business_user_id: biz.user_id,
-        listing_name: quoteModal.listing_name||quoteModal.ref||biz.name,
-        status:"active",
-      }).select("id").single();
-      roomId=newRoom?.id||null;
-    }
-
-    // 4. Send quote as first message in chat room
-    if(roomId){
-      await sb.from("direct_messages").insert({
-        room_id:     roomId,
-        sender_id:   biz.user_id,
-        sender_role: "business",
-        content:     `Quote sent for ${quoteModal.listing_name||"your request"}`,
-        type:        "quote_card",
-        metadata:{
-          price:gross,currency:"NGN",
-          timeline,notes:quoteNote,
-          quote_id:null,
-          request_ref:quoteModal.ref,
-        },
-        read_by_customer:false,
-        read_by_business:true,
-      });
-    }
-
-    // 5. Notify customer
+    // 3. Notify customer — chat room opens only after they pay
     (async()=>{try{await sb.from("notifications").insert({
       user_id:quoteModal.user_id,icon:"💬",
-      message:`${biz.name} sent you a quote of ${gross.toLocaleString()} NGN for request ${quoteModal.ref}. Open your Chat tab to view and respond.`,
+      message:`${biz.name} sent you a quote of ${gross.toLocaleString()} NGN for request ${quoteModal.ref||""}. Go to My Requests to review and pay — your chat with the business opens once payment is confirmed.`,
       type:"quote",
-      metadata:{request_id:quoteModal.id,request_ref:quoteModal.ref,amount:gross,room_id:roomId}
+      metadata:{request_id:quoteModal.id,request_ref:quoteModal.ref,amount:gross}
     });}catch{}})();
 
     onUpdate();setQuoteModal(null);setPrice("");setTimeline("");setQuoteNote("");setLoading(false);
@@ -793,44 +753,30 @@ function RequestsScreen({biz,requests,onUpdate,onGoToMessages}){
             </div>
           )}
           {req.status==="quoted"&&(
+            <div style={{background:"rgba(245,197,80,0.06)",border:"1px solid rgba(245,197,80,0.15)",borderRadius:9,padding:"10px 12px"}}>
+              <div style={{fontSize:11,color:"#F5C550",fontWeight:700,marginBottom:3}}>⏳ Quote sent — waiting for payment</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",lineHeight:1.5}}>The chat room and booking will appear here automatically once the customer accepts and pays. No action needed.</div>
+            </div>
+          )}
+          {(req.status==="in_progress"||req.status==="accepted")&&(
             <div>
-              <div style={{fontSize:11,color:"#F5C550",fontWeight:600,marginBottom:8}}>⏳ Quote sent — waiting for user to accept</div>
+              <div style={{fontSize:11,color:"#4DD994",fontWeight:700,marginBottom:8}}>✅ Payment confirmed — deliver the service</div>
               {rooms[req.id]?(
                 <button onClick={()=>onGoToMessages&&onGoToMessages(rooms[req.id])}
-                  style={{display:"flex",alignItems:"center",gap:8,background:"rgba(77,217,148,0.08)",border:"1px solid rgba(77,217,148,0.2)",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",width:"100%"}}>
-                  <span style={{fontSize:14}}>💬</span>
+                  style={{display:"flex",alignItems:"center",gap:8,background:"rgba(77,217,148,0.08)",border:"1px solid rgba(77,217,148,0.2)",borderRadius:9,padding:"8px 12px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",width:"100%"}}>
+                  <span style={{fontSize:16}}>💬</span>
                   <div style={{flex:1,textAlign:"left"}}>
-                    <div style={{fontSize:11,fontWeight:700,color:"#4DD994"}}>Chat with customer</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,0.3)"}}>Customer may have already sent a message</div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#4DD994"}}>Chat with customer</div>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,0.35)"}}>Coordinate delivery here</div>
                   </div>
                   {unreadCounts[rooms[req.id]?.id]>0&&(
-                    <span style={{background:"#C0392B",color:"white",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:10}}>
+                    <span style={{background:"#C0392B",color:"white",fontSize:10,fontWeight:800,padding:"3px 9px",borderRadius:10}}>
                       {unreadCounts[rooms[req.id]?.id]} new
                     </span>
                   )}
                 </button>
               ):(
-                <div style={{fontSize:10,color:"rgba(255,255,255,0.25)"}}>Chat opens when user responds</div>
-              )}
-            </div>
-          )}
-          {(req.status==="in_progress"||req.status==="accepted")&&(
-            <div>
-              <div style={{fontSize:11,color:"#4DD994",fontWeight:600,marginBottom:8}}>✅ Accepted — deliver the service</div>
-              {rooms[req.id]&&(
-                <button onClick={()=>onGoToMessages&&onGoToMessages(rooms[req.id])}
-                  style={{display:"flex",alignItems:"center",gap:8,background:"rgba(77,217,148,0.08)",border:"1px solid rgba(77,217,148,0.2)",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",width:"100%"}}>
-                  <span style={{fontSize:14}}>💬</span>
-                  <div style={{flex:1,textAlign:"left"}}>
-                    <div style={{fontSize:11,fontWeight:700,color:"#4DD994"}}>Message customer</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,0.3)"}}>Coordinate delivery</div>
-                  </div>
-                  {unreadCounts[rooms[req.id]?.id]>0&&(
-                    <span style={{background:"#C0392B",color:"white",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:10}}>
-                      {unreadCounts[rooms[req.id]?.id]} new
-                    </span>
-                  )}
-                </button>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>Chat loading… check Messages tab</div>
               )}
             </div>
           )}
@@ -1684,16 +1630,34 @@ function App(){
     sb.auth.getSession().then(async({data:{session}})=>{
       if(session?.user){
         const{data:bizData}=await sb.from("business_accounts").select("*").eq("user_id",session.user.id).single();
-        if(bizData){setAuthUser(session.user);setBiz(bizData);await loadData(bizData.id);}
+        if(bizData){
+          setAuthUser(session.user);setBiz(bizData);await loadData(bizData.id);
+          // Realtime: reload when new booking arrives
+          sb.channel("biz_bookings_"+bizData.id)
+            .on("postgres_changes",{event:"INSERT",schema:"public",table:"bookings",filter:"business_id=eq."+bizData.id},
+              async()=>{await loadData(bizData.id);})
+            .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_rooms",filter:"business_id=eq."+bizData.id},
+              async()=>{await loadData(bizData.id);})
+            .subscribe();
+        }
       }
       setLoading(false);
     });
   },[]);
 
   const loadData=async(bizId)=>{
-    const{data:reqs}=await sb.from("service_requests").select("*").eq("assigned_business_id",bizId).order("created_at",{ascending:false});
+    // Requests — only show open/quoted (not in_progress — those become bookings)
+    const{data:reqs}=await sb.from("service_requests")
+      .select("*")
+      .eq("assigned_business_id",bizId)
+      .in("status",["open","quoted","new"])
+      .order("created_at",{ascending:false});
     setRequests(reqs||[]);
-    const{data:bks}=await sb.from("bookings").select("*").eq("business_id",bizId).order("created_at",{ascending:false});
+    // Bookings — paid and confirmed
+    const{data:bks}=await sb.from("bookings")
+      .select("*")
+      .eq("business_id",bizId)
+      .order("created_at",{ascending:false});
     setBookings(bks||[]);
   };
 
