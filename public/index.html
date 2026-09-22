@@ -1138,7 +1138,6 @@ function ListingScreen({biz,onUpdate}){
           {[
             {label:"Business Name",key:"name",placeholder:"Your business name"},
             {label:"City / Location",key:"city",placeholder:"Cairo, Egypt"},
-            {label:"WhatsApp Number",key:"phone",placeholder:"+20 100 000 0000"},
           ].map(f=>(
             <div key={f.key} className="form-group"><label className="label">{f.label}</label>
               <input className="input" value={form[f.key]} onChange={e=>setForm({...form,[f.key]:e.target.value})} placeholder={f.placeholder}/></div>
@@ -1728,6 +1727,22 @@ function App(){
         {page==="settings"&&(
           <div className="content">
             <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:20}}>Settings</div>
+
+      {/* WhatsApp contact — private, only admin sees this */}
+      <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,marginBottom:16}}>
+        <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7",marginBottom:4}}>📞 Contact Number (Private)</div>
+        <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:14}}>
+          Your WhatsApp or phone number. This is <strong style={{color:"#F5C550"}}>never shown publicly</strong> on your listing. It is only visible to Xairod admins for internal coordination and support.
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <input className="input" style={{flex:1}} value={phone} onChange={e=>setPhone(e.target.value)}
+            placeholder="+234 800 000 0000 or +20 100 000 0000"/>
+          <button onClick={savePhone}
+            style={{padding:"9px 18px",borderRadius:9,border:"none",background:"#4DD994",color:"#03311A",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"'Outfit',sans-serif",flexShrink:0}}>
+            {phoneSaved?"✓ Saved":"Save"}
+          </button>
+        </div>
+      </div>
             <div className="card">
               <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.7}}>
                 For support, contact <span style={{color:"#4DD994"}}>hello@xairod.com</span> or message <span style={{color:"#4DD994"}}>t.me/ckairod</span>
