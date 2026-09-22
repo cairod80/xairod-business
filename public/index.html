@@ -297,6 +297,20 @@ function AuthScreen({onAuth}){
       }).eq("id",bizData.id);
     }
     setSuccess("Account created and documents submitted! Xairod will verify your identity within 24–48 hours.");
+
+    // Send welcome email to business
+    try{
+      await fetch("https://xairod.supabase.co/functions/v1/send-email",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":sb.supabaseKey||""},
+        body:JSON.stringify({
+          to:regEmail,
+          template:"business_registered",
+          data:{name:bizName,category:bizCat||catKey,ref:"XR-BIZ-"+(bizData?.id||"").slice(0,8).toUpperCase()}
+        }),
+      });
+    }catch(e){console.warn("Welcome email failed:",e);}
+
     setLoading(false);
   };
 
