@@ -393,12 +393,8 @@ function AuthScreen({onAuth}){
                       <option value="">Select category…</option>
                       {CATEGORIES.map(c=><option key={c}>{c}</option>)}
                     </select></div>
-                  <div className="form-row">
-                    <div className="form-group"><label className="label">City</label>
-                      <input className="input" value={bizCity} onChange={e=>setBizCity(e.target.value)}/></div>
-                    <div className="form-group"><label className="label">WhatsApp</label>
-                      <input className="input" value={bizPhone} onChange={e=>setBizPhone(e.target.value)} placeholder="+20 100 000 0000"/></div>
-                  </div>
+                  <div className="form-group"><label className="label">City / Location</label>
+                    <input className="input" value={bizCity} onChange={e=>setBizCity(e.target.value)} placeholder="e.g. Cairo, Nasr City"/></div>
                   <div className="form-group"><label className="label">Description</label>
                     <textarea className="input" rows={3} value={bizDesc} onChange={e=>setBizDesc(e.target.value)} placeholder="What services do you offer?"/></div>
                   <button className="btn-primary" onClick={()=>{
@@ -535,6 +531,29 @@ function Dashboard({biz,requests,bookings,setPage}){
 
   return(
     <div className="content">
+      {/* Complete your profile checklist */}
+      {biz?.status==="active"&&(
+        <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,marginBottom:20}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7",marginBottom:4}}>⚡ Complete Your Profile</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:14}}>Businesses with complete profiles get 3× more bookings</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {[
+              {icon:"📸",label:"Add photos",sub:"Upload up to 6 images",page:"listing"},
+              {icon:"🛎️",label:"Add services",sub:"List what you offer + prices",page:"services"},
+              {icon:"🕐",label:"Set hours",sub:"When are you available?",page:"availability"},
+              {icon:"💳",label:"Add bank account",sub:"So we can pay you",page:"payouts"},
+            ].map(item=>(
+              <button key={item.page} onClick={()=>setPage(item.page)}
+                style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 14px",textAlign:"left",cursor:"pointer",transition:"border-color 0.2s"}}>
+                <div style={{fontSize:22,marginBottom:6}}>{item.icon}</div>
+                <div style={{fontSize:12,fontWeight:700,color:"#FEFCF7",marginBottom:2}}>{item.label}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>{item.sub}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {biz?.status==="pending"&&(
         <div style={{marginBottom:20}}>
           <div className="alert alert-warn" style={{marginBottom:12}}>⏳ Your listing is under review. You'll start receiving requests once our team approves your account.</div>
@@ -1012,7 +1031,7 @@ function PayoutsScreen({biz,bookings}){
 
 // ── LISTING ───────────────────────────────────────────────────────────────────
 function ListingScreen({biz,onUpdate}){
-  const[form,setForm]=useState({name:biz?.name||"",city:biz?.city||"",phone:biz?.phone||"",description:biz?.description||""});
+  const[form,setForm]=useState({name:biz?.name||"",city:biz?.city||"",description:biz?.description||""});
   const[saving,setSaving]=useState(false);
   const[saved,setSaved]=useState(false);
   const[images,setImages]=useState([]);
@@ -1031,10 +1050,10 @@ function ListingScreen({biz,onUpdate}){
 
   const save=async()=>{
     setSaving(true);
-    await sb.from("business_accounts").update(form).eq("id",biz.id);
+    await sb.from("business_accounts").update({name:form.name,city:form.city,description:form.description}).eq("id",biz.id);
     if(biz.listing_id){
       await sb.from("listings").update({
-        name:form.name,city:form.city,phone:form.phone,
+        name:form.name,city:form.city,
         description:form.description
       }).eq("id",biz.listing_id);
     }
