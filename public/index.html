@@ -532,8 +532,8 @@ function Dashboard({biz,requests,bookings,setPage}){
   return(
     <div className="content">
       {/* Complete your profile checklist */}
-      {biz?.status==="active"&&(
-        <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,marginBottom:20}}>
+      {/* Always show profile checklist */}
+      <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,marginBottom:20}}>
           <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7",marginBottom:4}}>⚡ Complete Your Profile</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:14}}>Businesses with complete profiles get 3× more bookings</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -552,7 +552,6 @@ function Dashboard({biz,requests,bookings,setPage}){
             ))}
           </div>
         </div>
-      )}
 
       {biz?.status==="pending"&&(
         <div style={{marginBottom:20}}>
@@ -1040,13 +1039,17 @@ function ListingScreen({biz,onUpdate}){
   const[toast,setToast]=useState(null);
   const showToast=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
 
-  // Load existing images from listing
+  // Load existing images — from listing if linked, else from business_accounts
   useEffect(()=>{
     if(biz?.listing_id){
       sb.from("listings").select("images").eq("id",biz.listing_id).single()
         .then(({data})=>{if(data?.images&&Array.isArray(data.images))setImages(data.images);});
+    } else if(biz?.id){
+      // No listing yet — images stored on business account directly
+      sb.from("business_accounts").select("images").eq("id",biz.id).single()
+        .then(({data})=>{if(data?.images&&Array.isArray(data.images))setImages(data.images);});
     }
-  },[biz?.listing_id]);
+  },[biz?.listing_id,biz?.id]);
 
   const save=async()=>{
     setSaving(true);
@@ -1077,11 +1080,13 @@ function ListingScreen({biz,onUpdate}){
     const{data:urlData}=sb.storage.from("listing-images").getPublicUrl(path);
     const newImages=[...images,urlData.publicUrl];
     setImages(newImages);
-    // Save to listing immediately
+    // Save images — to listing if exists, otherwise to business_accounts
     if(biz.listing_id){
       await sb.from("listings").update({images:newImages}).eq("id",biz.listing_id);
+    } else {
+      await sb.from("business_accounts").update({images:newImages}).eq("id",biz.id);
     }
-    showToast("Image uploaded — now visible on Xairod");
+    showToast("Image uploaded — will go live when your account is approved");
     setUploading(false);
   };
 
@@ -1102,12 +1107,10 @@ function ListingScreen({biz,onUpdate}){
       {toast&&<div className={`alert alert-${toast.type==="success"?"success":"error"}`} style={{marginBottom:16}}>{toast.msg}</div>}
       <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:20}}>My Listing</div>
       {biz?.status==="pending"&&(
-        <div>
-          <div className="alert alert-warn" style={{marginBottom:12}}>
-            ⏳ Your listing is under review — expected activation within 24 hours.
-          </div>
-          <div style={{background:"rgba(200,134,26,0.07)",border:"1px solid rgba(200,134,26,0.15)",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.7}}>
-            📋 <strong style={{color:"#F5C550"}}>What's being reviewed:</strong> Your KYC documents, business registration and due diligence declarations submitted during registration. You can already fill in your business details and upload photos below — they will go live the moment your account is approved.
+        <div style={{background:"rgba(200,134,26,0.08)",border:"1.5px solid rgba(200,134,26,0.2)",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#F5C550",marginBottom:4}}>⏳ Account under review — go live within 24h</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.45)",lineHeight:1.7}}>
+            You can <strong style={{color:"#FEFCF7"}}>upload photos, add services and set your hours right now</strong>. Everything goes live the moment your account is approved. No need to wait.
           </div>
         </div>
       )}
