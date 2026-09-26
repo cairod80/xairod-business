@@ -1741,37 +1741,47 @@ function App(){
           </div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.3)"}}>{biz.name}</div>
         </div>
-        {page==="dashboard"&&<Dashboard biz={biz} requests={requests} bookings={bookings} setPage={setPage}/>}
-        {page==="requests"&&<RequestsScreen biz={biz} requests={requests} onUpdate={()=>loadData(biz.id)}/>}
-        {page==="bookings"&&<BookingsScreen biz={biz} bookings={bookings} onUpdate={()=>loadData(biz.id)}/>}
-        {page==="payouts"&&<PayoutsScreen biz={biz} bookings={bookings}/>}
-        {page==="listing"&&<ListingScreen biz={biz} onUpdate={()=>loadData(biz.id)}/>}
-        {page==="settings"&&(
-          <div className="content">
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:20}}>Settings</div>
+        {page==="dashboard"    && <Dashboard biz={biz} requests={requests} bookings={bookings} setPage={setPage}/>}
+        {page==="messages"     && <BusinessMessagesScreen biz={biz}/>}
+        {page==="requests"     && <RequestsScreen biz={biz} requests={requests} onUpdate={()=>loadData(biz.id)} onGoToMessages={(room)=>{setPage("messages");setTimeout(()=>window.dispatchEvent(new CustomEvent("openRoom",{detail:room})),200);}}/>}
+        {page==="bookings"     && <BookingsScreen biz={biz} bookings={bookings} onUpdate={()=>loadData(biz.id)}/>}
+        {page==="services"     && <ServicesScreen biz={biz}/>}
+        {page==="availability" && <AvailabilityScreen biz={biz}/>}
+        {page==="customers"    && <CustomersScreen biz={biz}/>}
+        {page==="payouts"      && <PayoutsScreen biz={biz} bookings={bookings}/>}
+        {page==="listing"      && <ListingScreen biz={biz} onUpdate={()=>loadData(biz.id)}/>}
+        {page==="settings"&&<SettingsScreen biz={biz}/>}
+      </div>
+    </div>
+  );
+}
 
-      {/* WhatsApp contact — private, only admin sees this */}
+function SettingsScreen({biz}){
+  const[phone,setPhone]=React.useState(biz?.phone||"");
+  const[phoneSaved,setPhoneSaved]=React.useState(false);
+  const savePhone=async()=>{
+    await sb.from("business_accounts").update({phone}).eq("id",biz.id);
+    setPhoneSaved(true);setTimeout(()=>setPhoneSaved(false),2500);
+  };
+  return(
+    <div className="content">
+      <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#FEFCF7",marginBottom:20}}>Settings</div>
       <div style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,marginBottom:16}}>
         <div style={{fontSize:12,fontWeight:800,color:"#FEFCF7",marginBottom:4}}>📞 Contact Number (Private)</div>
         <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:14}}>
-          Your WhatsApp or phone number. This is <strong style={{color:"#F5C550"}}>never shown publicly</strong> on your listing. It is only visible to Xairod admins for internal coordination and support.
+          Your WhatsApp or phone number. <strong style={{color:"#F5C550"}}>Never shown publicly.</strong> Only visible to Xairod admins for coordination and support.
         </div>
         <div style={{display:"flex",gap:10}}>
-          <input className="input" style={{flex:1}} value={phone} onChange={e=>setPhone(e.target.value)}
-            placeholder="+234 800 000 0000 or +20 100 000 0000"/>
-          <button onClick={savePhone}
-            style={{padding:"9px 18px",borderRadius:9,border:"none",background:"#4DD994",color:"#03311A",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"'Outfit',sans-serif",flexShrink:0}}>
+          <input className="input" style={{flex:1}} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+234 800 000 0000"/>
+          <button onClick={savePhone} style={{padding:"9px 18px",borderRadius:9,border:"none",background:"#4DD994",color:"#03311A",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"'Outfit',sans-serif",flexShrink:0}}>
             {phoneSaved?"✓ Saved":"Save"}
           </button>
         </div>
       </div>
-            <div className="card">
-              <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.7}}>
-                For support, contact <span style={{color:"#4DD994"}}>hello@xairod.com</span> or message <span style={{color:"#4DD994"}}>t.me/ckairod</span>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="card">
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.7}}>
+          Need help? Contact <span style={{color:"#4DD994"}}>hello@xairod.com</span> or message <span style={{color:"#4DD994"}}>t.me/ckairod</span>
+        </div>
       </div>
     </div>
   );
