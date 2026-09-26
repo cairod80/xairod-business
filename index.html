@@ -86,6 +86,8 @@ const SUPA_URL = "https://gfvsosvszxwazuqnsavq.supabase.co";
 const SUPA_KEY = "sb_publishable_VmI5TxyIucgncKe9GblOCg_YkqpXPv0";
 const { createClient } = supabase;
 const sb = createClient(SUPA_URL, SUPA_KEY);
+const { useState, useEffect, useRef } = React;
+const PAYSTACK_CURRENCY = "NGN";
 
 const COMMISSION_RATES = {
   agency:12, housing:10, health:15, travel:12,
@@ -522,6 +524,7 @@ function Sidebar({page,setPage,biz,newLeads,onSignOut}){
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function Dashboard({biz,requests,bookings,setPage}){
+  if(!biz) return null;
   const totalReqs=requests.length;
   const newReqs=requests.filter(r=>r.status==="open").length;
   const converted=bookings.filter(b=>b.status==="completed").length;
@@ -1675,11 +1678,14 @@ function App(){
   const[bookings,setBookings]=useState([]);
   const[loading,setLoading]=useState(true);
   const[sidebarOpen,setSidebarOpen]=useState(false);
+  const[newLeads,setNewLeads]=useState(0);
+  const[newMessages,setNewMessages]=useState(0);
 
   useEffect(()=>{
     sb.auth.getSession().then(async({data:{session}})=>{
       if(session?.user){
-        const{data:bizData}=await sb.from("business_accounts").select("*").eq("user_id",session.user.id).single();
+        const{data:bizRows}=await sb.from("business_accounts").select("*").eq("user_id",session.user.id).limit(1);
+        const bizData=bizRows?.[0]||null;
         if(bizData){
           setAuthUser(session.user);setBiz(bizData);await loadData(bizData.id);
           // Realtime: reload when new booking arrives
@@ -1696,13 +1702,20 @@ function App(){
   },[]);
 
   const loadData=async(bizId)=>{
-    // Requests — only show open/quoted (not in_progress — those become bookings)
+    // Requests — only show open/quoted
     const{data:reqs}=await sb.from("service_requests")
       .select("*")
       .eq("assigned_business_id",bizId)
       .in("status",["open","quoted","new"])
       .order("created_at",{ascending:false});
     setRequests(reqs||[]);
+    setNewLeads((reqs||[]).filter(r=>r.status==="open").length);
+    // Unread messages
+    if(bizId){
+      sb.from("direct_messages").select("id",{count:"exact"})
+        .eq("read_by_business",false).neq("sender_role","business")
+        .then(({count})=>setNewMessages(count||0));
+    }
     // Bookings — paid and confirmed
     const{data:bks}=await sb.from("bookings")
       .select("*")
