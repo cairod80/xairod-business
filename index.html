@@ -4,70 +4,108 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Xairod Business Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Outfit',sans-serif;background:#0D0A05;color:#FEFCF7;min-height:100vh;}
-.layout{display:flex;min-height:100vh;}
-.sidebar{width:220px;background:#141008;border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform 0.25s;}
-.sidebar-logo{padding:20px 18px;border-bottom:1px solid rgba(255,255,255,0.06);}
-.logo-text{font-family:'Fraunces',serif;font-size:22px;font-weight:900;color:#FEFCF7;}
-.logo-text .x{color:#4DD994;}.logo-text .d{color:#C8861A;}
-.nav{flex:1;padding:12px 0;}
-.nav-item{width:100%;display:flex;align-items:center;gap:10px;padding:10px 18px;background:none;border:none;color:rgba(255,255,255,0.5);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-align:left;border-radius:0;transition:all 0.15s;}
-.nav-item:hover{background:rgba(255,255,255,0.04);color:#FEFCF7;}
-.nav-item.active{background:rgba(77,217,148,0.08);color:#4DD994;border-right:2px solid #4DD994;}
-.nav-icon{font-size:16px;width:20px;text-align:center;}
-.badge{background:#C0392B;color:white;font-size:9px;font-weight:800;padding:2px 6px;border-radius:10px;margin-left:auto;}
-.main{margin-left:220px;flex:1;min-height:100vh;}
-.topbar{padding:14px 28px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;background:#141008;position:sticky;top:0;z-index:50;}
-.page-title{font-family:'Fraunces',serif;font-size:18px;font-weight:800;}
-.content{padding:24px 28px 48px;}
-.card{background:#141008;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;margin-bottom:16px;}
-.card-title{font-size:12px;font-weight:800;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
-.input{width:100%;padding:10px 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#FEFCF7;font-family:'Outfit',sans-serif;font-size:13px;outline:none;}
-.input::placeholder{color:rgba(255,255,255,0.25);}
-.input:focus{border-color:#4DD994;}
-select.input option{background:#1a1510;color:#FEFCF7;}
-.label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:5px;}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-.form-group{margin-bottom:12px;}
-.btn-primary{background:#4DD994;color:#03311A;border:none;padding:11px 22px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
-.btn-outline{background:transparent;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.15);padding:8px 16px;border-radius:9px;font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;cursor:pointer;}
-.btn-danger{background:rgba(192,57,43,0.15);color:#E74C3C;border:1px solid rgba(192,57,43,0.25);padding:5px 12px;border-radius:7px;font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;cursor:pointer;}
-.alert{padding:12px 16px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:16px;}
+:root{--g:#0A6B3E;--bg:#0D0A05;--card:#141008;--bdr:rgba(255,255,255,0.07);--sub:rgba(255,255,255,0.35);--txt:#FEFCF7;--gold:#C8861A;--red:#C0392B;--green:#4DD994;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
+.hidden{display:none!important;}
+/* AUTH */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.auth-box{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:32px;width:100%;max-width:420px;}
+.logo{font-family:'Fraunces',serif;font-size:26px;font-weight:900;margin-bottom:4px;}
+.logo .x{color:var(--green)}.logo .d{color:var(--gold)}
+.form-group{margin-bottom:14px;}
+label{display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;}
+input,select,textarea{width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--bdr);background:rgba(255,255,255,0.05);color:var(--txt);font-family:'Outfit',sans-serif;font-size:13px;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--green);}
+select option{background:#1a1510;}
+.btn{padding:11px 22px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;cursor:pointer;width:100%;margin-top:4px;}
+.btn-primary{background:var(--green);color:#03311A;}
+.btn-outline{background:transparent;border:1px solid var(--bdr);color:var(--sub);}
+.btn-sm{width:auto;padding:6px 14px;font-size:12px;margin-top:0;}
+.btn-danger{background:rgba(192,57,43,0.15);color:var(--red);border:1px solid rgba(192,57,43,0.25);}
+.alert{padding:10px 14px;border-radius:9px;font-size:12px;font-weight:600;margin-bottom:12px;}
+.alert-error{background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.2);color:var(--red);}
+.alert-success{background:rgba(77,217,148,0.08);border:1px solid rgba(77,217,148,0.15);color:var(--green);}
 .alert-warn{background:rgba(200,134,26,0.1);border:1px solid rgba(200,134,26,0.2);color:#F5C550;}
-.alert-success{background:rgba(77,217,148,0.08);border:1px solid rgba(77,217,148,0.15);color:#4DD994;}
-.alert-error{background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.15);color:#E74C3C;}
+.link-btn{background:none;border:none;color:var(--green);cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;}
+/* APP LAYOUT */
+#app-screen{display:flex;min-height:100vh;}
+.sidebar{width:220px;background:var(--card);border-right:1px solid var(--bdr);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s;}
+.sidebar-logo{padding:20px 18px;border-bottom:1px solid var(--bdr);}
+.sidebar-logo .name{font-family:'Fraunces',serif;font-size:20px;font-weight:900;}
+.sidebar-logo .sub{font-size:10px;color:var(--sub);margin-top:2px;}
+.sidebar-logo .biz-name{font-size:12px;font-weight:700;color:var(--txt);margin-top:8px;}
+nav{flex:1;padding:10px 0;}
+.nav-item{width:100%;display:flex;align-items:center;gap:10px;padding:10px 18px;background:none;border:none;color:var(--sub);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s;}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--txt);}
+.nav-item.active{background:rgba(77,217,148,0.08);color:var(--green);border-right:2px solid var(--green);}
+.nav-icon{font-size:16px;width:20px;text-align:center;}
+.nav-badge{background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:10px;margin-left:auto;}
+.sidebar-footer{padding:16px 18px;border-top:1px solid var(--bdr);}
+.main{margin-left:220px;flex:1;}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--card);position:sticky;top:0;z-index:50;}
+.page-title{font-family:'Fraunces',serif;font-size:18px;font-weight:800;}
+.topbar-right{font-size:11px;color:var(--sub);}
+.content{padding:24px 28px 48px;}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:20px;margin-bottom:16px;}
+.card-title{font-size:12px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:18px;cursor:pointer;}
+.stat-num{font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--green);margin-bottom:4px;}
+.stat-label{font-size:11px;color:var(--sub);}
 .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;}
-.pill-green{background:rgba(77,217,148,0.15);color:#4DD994;}
+.pill-green{background:rgba(77,217,148,0.15);color:var(--green);}
 .pill-gold{background:rgba(200,134,26,0.15);color:#F5C550;}
-.pill-red{background:rgba(192,57,43,0.15);color:#E74C3C;}
-.pill-gray{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);}
+.pill-red{background:rgba(192,57,43,0.15);color:var(--red);}
+.pill-gray{background:rgba(255,255,255,0.06);color:var(--sub);}
+/* REQUEST CARDS */
+.req-card{border-left:4px solid #888;padding:16px;border-radius:0 12px 12px 0;background:var(--card);border-top:1px solid var(--bdr);border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);margin-bottom:10px;}
+.req-card.open{border-left-color:#888;}
+.req-card.quoted{border-left-color:#F5C550;}
+.req-card.in_progress{border-left-color:var(--green);}
+/* IMAGE GRID */
+.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.img-slot{aspect-ratio:4/3;border-radius:10px;overflow:hidden;border:1px solid var(--bdr);position:relative;}
+.img-slot img{width:100%;height:100%;object-fit:cover;}
+.img-cover-badge{position:absolute;top:6px;left:6px;background:var(--green);color:#03311A;font-size:8px;font-weight:800;padding:2px 7px;border-radius:4px;}
+.img-del{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.img-add{aspect-ratio:4/3;border-radius:10px;border:1.5px dashed var(--bdr);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:6px;background:rgba(255,255,255,0.02);}
+.img-add span{font-size:24px;}
+.img-add p{font-size:10px;color:var(--sub);font-weight:600;}
+/* TABLE */
 table{width:100%;border-collapse:collapse;font-size:12px;}
-th{text-align:left;padding:8px 12px;color:rgba(255,255,255,0.3);font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.06);}
+th{text-align:left;padding:8px 12px;color:var(--sub);font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid var(--bdr);}
 td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+/* EMPTY */
 .empty{text-align:center;padding:48px 0;}
 .empty-icon{font-size:48px;margin-bottom:12px;}
-.empty-title{font-family:'Fraunces',serif;font-size:18px;font-weight:800;color:rgba(255,255,255,0.3);margin-bottom:6px;}
+.empty-title{font-family:'Fraunces',serif;font-size:18px;font-weight:800;color:var(--sub);margin-bottom:6px;}
 .empty-sub{font-size:12px;color:rgba(255,255,255,0.2);}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal{background:#1a1510;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:#1a1510;border:1px solid var(--bdr);border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
 .modal-title{font-family:'Fraunces',serif;font-size:18px;font-weight:800;margin-bottom:16px;}
-/* Auth */
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0D0A05;padding:24px;}
-.auth-box{background:#141008;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:32px;width:100%;max-width:440px;}
-.auth-logo{font-family:'Fraunces',serif;font-size:28px;font-weight:900;margin-bottom:4px;}
-.steps{display:flex;gap:8px;margin-bottom:24px;}
-.step{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);}
-.step.done{background:#4DD994;}
-.step.active{background:#C8861A;}
-/* Mobile */
-.mob-bar{display:none;background:#141008;padding:12px 16px;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);position:fixed;top:0;left:0;right:0;z-index:150;}
+/* CHAT */
+.chat-msgs{flex:1;overflow-y:auto;padding-bottom:10px;}
+.msg-row{display:flex;margin-bottom:10px;}
+.msg-row.me{justify-content:flex-end;}
+.msg-bubble{max-width:75%;padding:9px 13px;border-radius:12px;font-size:12px;line-height:1.55;}
+.msg-bubble.me{background:var(--g);border-radius:12px 12px 4px 12px;}
+.msg-bubble.them{background:rgba(255,255,255,0.07);border-radius:12px 12px 12px 4px;}
+.msg-bubble.system{background:rgba(200,134,26,0.08);border:1px solid rgba(200,134,26,0.15);color:#F5C550;font-style:italic;border-radius:12px;}
+/* TOGGLE */
+.toggle-btn{width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle-dot{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;transition:left .2s;}
+/* TOAST */
+.toast{position:fixed;top:20px;right:20px;z-index:999;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:320px;}
+/* MOBILE */
+.mob-bar{display:none;background:var(--card);padding:12px 16px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);position:fixed;top:0;left:0;right:0;z-index:150;}
 .overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%);}
@@ -75,876 +113,721 @@ td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-ali
   .overlay-bg.open{display:block;}
   .main{margin-left:0;}
   .mob-bar{display:flex;}
-  .topbar{padding-top:60px;}
   .content{padding:16px 16px 80px;}
-  .form-row{grid-template-columns:1fr;}
+  .topbar{margin-top:50px;}
+  .grid-3{grid-template-columns:1fr 1fr;}
+  .grid-2{grid-template-columns:1fr;}
 }
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const S = React;
-const {useState, useEffect, useRef} = S;
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="logo"><span class="x">X</span>airod<span class="d">.</span></div>
+    <p style="font-size:12px;color:var(--sub);margin-bottom:24px;">Business Portal</p>
+    <div id="auth-error" class="alert alert-error hidden"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="business@email.com"/></div>
+    <div class="form-group"><label>Password</label><input type="password" id="auth-pass" placeholder="••••••••"/></div>
+    <button class="btn btn-primary" id="btn-login">Sign In →</button>
+    <p style="font-size:12px;color:var(--sub);text-align:center;margin-top:14px;">New business? <button class="link-btn" id="go-register">Register here</button></p>
+
+    <!-- REGISTER -->
+    <div id="reg-panel" class="hidden" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bdr);">
+      <p style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:14px;">Partner Registration</p>
+      <div class="form-group"><label>Business Name *</label><input type="text" id="reg-name" placeholder="Your business name"/></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Category *</label>
+          <select id="reg-cat">
+            <option value="health">Health</option>
+            <option value="food">Food & Restaurant</option>
+            <option value="travel">Tourism & Travel</option>
+            <option value="housing">Housing</option>
+            <option value="school">Schools & Agencies</option>
+            <option value="agency">Admission Agency</option>
+            <option value="language">Language School</option>
+          </select>
+        </div>
+        <div class="form-group"><label>City *</label><input type="text" id="reg-city" placeholder="Cairo, Egypt"/></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="reg-desc" rows="2" placeholder="What do you offer?"></textarea></div>
+      <div class="form-group"><label>KYC Documents (ID + Business Reg) *</label><input type="file" id="reg-docs" multiple accept=".pdf,.jpg,.jpeg,.png" style="color:var(--sub);font-size:12px;"/></div>
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px;">
+        <input type="checkbox" id="reg-agree" style="width:auto;margin-top:3px;"/>
+        <label for="reg-agree" style="font-size:11px;color:var(--sub);text-transform:none;letter-spacing:0;cursor:pointer;">I agree to the <a href="https://www.xairod.com/terms" target="_blank" style="color:var(--green);">Terms & Conditions</a></label>
+      </div>
+      <button class="btn btn-primary" id="btn-register">Submit Application →</button>
+      <p style="font-size:11px;color:var(--sub);text-align:center;margin-top:10px;"><button class="link-btn" id="go-login" style="font-size:11px;">Already registered? Sign in</button></p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="hidden">
+  <div class="overlay-bg" id="mob-overlay"></div>
+  <div class="mob-bar">
+    <button id="mob-menu" style="background:none;border:none;color:var(--txt);font-size:22px;cursor:pointer;">☰</button>
+    <div class="logo" style="font-size:18px;"><span class="x">X</span>airod<span class="d">.</span></div>
+    <div style="width:30px;"></div>
+  </div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo" style="font-size:20px;"><span class="x">X</span>airod<span class="d">.</span></div>
+      <div class="sub">Business Portal</div>
+      <div class="biz-name" id="sb-biz-name">—</div>
+      <div id="sb-biz-status" style="font-size:10px;margin-top:2px;"></div>
+    </div>
+    <nav id="main-nav">
+      <button class="nav-item active" data-page="dashboard"><span class="nav-icon">⊞</span>Dashboard</button>
+      <button class="nav-item" data-page="messages"><span class="nav-icon">💬</span>Messages</button>
+      <button class="nav-item" data-page="requests"><span class="nav-icon">📥</span>Requests<span class="nav-badge hidden" id="badge-requests">0</span></button>
+      <button class="nav-item" data-page="bookings"><span class="nav-icon">✅</span>Bookings</button>
+      <button class="nav-item" data-page="services"><span class="nav-icon">🛎️</span>Services</button>
+      <button class="nav-item" data-page="availability"><span class="nav-icon">📅</span>Availability</button>
+      <button class="nav-item" data-page="customers"><span class="nav-icon">👥</span>Customers</button>
+      <button class="nav-item" data-page="payouts"><span class="nav-icon">💰</span>Payouts</button>
+      <button class="nav-item" data-page="listing"><span class="nav-icon">🏢</span>My Listing</button>
+      <button class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sb-email" style="font-size:10px;color:var(--sub);margin-bottom:10px;"></div>
+      <button class="btn btn-outline btn-sm" id="btn-signout" style="width:100%;">Sign Out</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-right" id="topbar-right"></div>
+    </div>
+    <div class="content" id="page-content"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay hidden" id="modal-overlay">
+  <div class="modal" id="modal-box"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast hidden" id="toast"></div>
+
+<script>
 const SUPA_URL = "https://gfvsosvszxwazuqnsavq.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmdnNvc3Zzenh3YXp1cW5zYXZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODcxNjAsImV4cCI6MjA5MzY2MzE2MH0.SvSc1IDr_iK8YweQpKarmglQTPV7w2dNkKcbFim_Ztc";
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
-const { useState, useEffect, useRef } = React;
+
+let BIZ = null;
+let REQUESTS = [];
+let BOOKINGS = [];
+let CURRENT_PAGE = "dashboard";
+let CHAT_CHANNEL = null;
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
-const CATS = {health:"Health",food:"Food & Restaurants",travel:"Tourism & Travel",housing:"Housing",school:"Schools & Agencies",agency:"Admission Agency",language:"Language School"};
+const $ = id => document.getElementById(id);
 const fmt = n => (n||0).toLocaleString();
-function Toast({msg,type,onDone}){
-  useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t);},[]);
-  return <div className={"alert alert-"+(type==="error"?"error":type==="warn"?"warn":"success")} style={{position:"fixed",top:16,right:16,zIndex:999,maxWidth:320,boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>{msg}</div>;
+const el = (tag, attrs={}, ...children) => {
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v]) => { if(k==='className') e.className=v; else if(k==='style') Object.assign(e.style,v); else if(k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(),v); else e.setAttribute(k,v); });
+  children.forEach(c => c != null && e.append(typeof c==='string' ? c : c));
+  return e;
+};
+
+function showToast(msg, type='success') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast';
+  t.style.background = type==='error'?'rgba(192,57,43,0.9)':type==='warn'?'rgba(200,134,26,0.9)':'rgba(10,107,62,0.9)';
+  t.style.color = '#fff';
+  t.style.border = '1px solid rgba(255,255,255,0.2)';
+  t.classList.remove('hidden');
+  setTimeout(()=>t.classList.add('hidden'), 3000);
 }
 
-// ── AUTH / REGISTER ───────────────────────────────────────────────────────────
-function AuthScreen({onAuth}){
-  const[mode,setMode]=useState("login"); // login | register
-  const[step,setStep]=useState(1);
-  const[email,setEmail]=useState("");
-  const[pass,setPass]=useState("");
-  const[bizName,setBizName]=useState("");
-  const[bizCat,setBizCat]=useState("health");
-  const[bizCity,setBizCity]=useState("");
-  const[bizDesc,setBizDesc]=useState("");
-  const[docs,setDocs]=useState([]);
-  const[agreed,setAgreed]=useState(false);
-  const[err,setErr]=useState("");
-  const[loading,setLoading]=useState(false);
+function showModal(html) { $('modal-box').innerHTML = html; $('modal-overlay').classList.remove('hidden'); }
+function closeModal() { $('modal-overlay').classList.add('hidden'); }
+$('modal-overlay').addEventListener('click', e => { if(e.target===$('modal-overlay')) closeModal(); });
 
-  const login=async()=>{
-    if(!email||!pass){setErr("Enter email and password.");return;}
-    setLoading(true);setErr("");
-    const{error}=await sb.auth.signInWithPassword({email,password:pass});
-    if(error){setErr(error.message);setLoading(false);return;}
-    const{data:rows}=await sb.from("business_accounts").select("*").eq("user_id",(await sb.auth.getUser()).data.user.id).limit(1);
-    if(rows?.[0]) onAuth(rows[0]);
-    else{setErr("No business account found for this email.");await sb.auth.signOut();}
-    setLoading(false);
-  };
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+$('go-register').addEventListener('click', ()=>{ $('reg-panel').classList.remove('hidden'); $('go-register').closest('p').classList.add('hidden'); });
+$('go-login').addEventListener('click', ()=>{ $('reg-panel').classList.add('hidden'); $('go-register').closest('p').classList.remove('hidden'); });
 
-  const register=async()=>{
-    if(!agreed){setErr("Please agree to the terms.");return;}
-    setLoading(true);setErr("");
-    try{
-      let userId;
-      const existing=await sb.auth.getUser();
-      if(existing.data.user){userId=existing.data.user.id;}
-      else{
-        const{data,error:signErr}=await sb.auth.signUp({email,password:pass});
-        if(signErr)throw signErr;
-        userId=data.user.id;
-      }
-      const{data:biz,error:bizErr}=await sb.from("business_accounts").insert({
-        user_id:userId,name:bizName,email,category:bizCat,city:bizCity,
-        description:bizDesc,status:"pending",kyc_status:"submitted",
-        commission_rate:12
-      }).select().single();
-      if(bizErr)throw bizErr;
-      // Upload docs
-      for(const doc of docs){
-        const path=`kyc/${biz.id}/${Date.now()}_${doc.name}`;
-        await sb.storage.from("kyc-documents").upload(path,doc);
-        await sb.from("kyc_documents").insert({business_id:biz.id,document_type:doc.name,file_path:path,status:"pending"});
-      }
-      onAuth(biz);
-    }catch(e){setErr(e.message);}
-    setLoading(false);
-  };
+$('btn-login').addEventListener('click', async()=>{
+  const email=$('auth-email').value.trim(), pass=$('auth-pass').value;
+  if(!email||!pass){showAuthErr("Enter email and password.");return;}
+  $('btn-login').textContent='Signing in…';
+  const{error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){showAuthErr(error.message);$('btn-login').textContent='Sign In →';return;}
+  await loadApp();
+});
 
-  if(mode==="login") return(
-    <div className="auth-wrap">
-      <div className="auth-box">
-        <div className="auth-logo"><span className="x" style={{color:"#4DD994"}}>X</span>airod<span style={{color:"#C8861A"}}>.</span></div>
-        <p style={{fontSize:12,color:"rgba(255,255,255,0.3)",marginBottom:24}}>Business Portal</p>
-        <div className="form-group"><label className="label">Email</label><input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@business.com"/></div>
-        <div className="form-group"><label className="label">Password</label><input className="input" type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••"/></div>
-        {err&&<div className="alert alert-error">{err}</div>}
-        <button className="btn-primary" style={{width:"100%",marginBottom:12}} onClick={login} disabled={loading}>{loading?"Signing in…":"Sign In →"}</button>
-        <p style={{fontSize:12,color:"rgba(255,255,255,0.3)",textAlign:"center"}}>New business? <button onClick={()=>setMode("register")} style={{background:"none",border:"none",color:"#4DD994",cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:700}}>Register here</button></p>
-      </div>
-    </div>
-  );
-
-  return(
-    <div className="auth-wrap">
-      <div className="auth-box" style={{maxWidth:520}}>
-        <div className="auth-logo"><span style={{color:"#4DD994"}}>X</span>airod<span style={{color:"#C8861A"}}>.</span></div>
-        <p style={{fontSize:12,color:"rgba(255,255,255,0.3)",marginBottom:16}}>Partner Registration</p>
-        <div className="steps">
-          {[1,2,3].map(n=><div key={n} className={"step"+(step>n?" done":step===n?" active":"")}/>)}
-        </div>
-
-        {step===1&&<>
-          <p style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.5)",marginBottom:16}}>Step 1 — Account & Business Info</p>
-          <div className="form-row">
-            <div className="form-group"><label className="label">Email *</label><input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="business@email.com"/></div>
-            <div className="form-group"><label className="label">Password *</label><input className="input" type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="Min 8 characters"/></div>
-          </div>
-          <div className="form-group"><label className="label">Business Name *</label><input className="input" value={bizName} onChange={e=>setBizName(e.target.value)} placeholder="Your business name"/></div>
-          <div className="form-row">
-            <div className="form-group"><label className="label">Category *</label>
-              <select className="input" value={bizCat} onChange={e=>setBizCat(e.target.value)}>
-                {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
-            <div className="form-group"><label className="label">City *</label><input className="input" value={bizCity} onChange={e=>setBizCity(e.target.value)} placeholder="Cairo, Egypt"/></div>
-          </div>
-          <div className="form-group"><label className="label">Description</label><textarea className="input" rows={3} value={bizDesc} onChange={e=>setBizDesc(e.target.value)} placeholder="What do you offer?"/></div>
-          {err&&<div className="alert alert-error">{err}</div>}
-          <button className="btn-primary" onClick={()=>{if(!email||!pass||!bizName||!bizCity){setErr("Fill all required fields.");return;}setErr("");setStep(2);}} style={{width:"100%"}}>Next →</button>
-        </>}
-
-        {step===2&&<>
-          <p style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.5)",marginBottom:16}}>Step 2 — KYC Documents</p>
-          <div className="alert alert-warn">Upload your business registration, valid ID, and any professional licence. Documents are reviewed within 24 hours.</div>
-          <div className="form-group">
-            <label className="label">Upload Documents *</label>
-            <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={e=>setDocs(Array.from(e.target.files))}
-              style={{color:"rgba(255,255,255,0.5)",fontSize:12}}/>
-            {docs.length>0&&<p style={{fontSize:11,color:"#4DD994",marginTop:6}}>✓ {docs.length} file(s) selected</p>}
-          </div>
-          <div style={{display:"flex",gap:10}}>
-            <button className="btn-outline" onClick={()=>setStep(1)} style={{flex:1}}>← Back</button>
-            <button className="btn-primary" onClick={()=>{if(!docs.length){setErr("Upload at least one document.");return;}setErr("");setStep(3);}} style={{flex:2}}>Next →</button>
-          </div>
-          {err&&<div className="alert alert-error" style={{marginTop:12}}>{err}</div>}
-        </>}
-
-        {step===3&&<>
-          <p style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.5)",marginBottom:16}}>Step 3 — Review & Submit</p>
-          <div className="card">
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.8}}>
-              <div><strong style={{color:"#FEFCF7"}}>Business:</strong> {bizName}</div>
-              <div><strong style={{color:"#FEFCF7"}}>Category:</strong> {CATS[bizCat]}</div>
-              <div><strong style={{color:"#FEFCF7"}}>City:</strong> {bizCity}</div>
-              <div><strong style={{color:"#FEFCF7"}}>Documents:</strong> {docs.length} files</div>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:16}}>
-            <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)} style={{marginTop:3}}/>
-            <label htmlFor="agree" style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.6,cursor:"pointer"}}>
-              I agree to the <a href="https://www.xairod.com/terms" target="_blank" style={{color:"#4DD994"}}>Terms & Conditions</a> and confirm all information is accurate.
-            </label>
-          </div>
-          {err&&<div className="alert alert-error">{err}</div>}
-          <div style={{display:"flex",gap:10}}>
-            <button className="btn-outline" onClick={()=>setStep(2)} style={{flex:1}}>← Back</button>
-            <button className="btn-primary" onClick={register} disabled={loading||!agreed} style={{flex:2}}>{loading?"Submitting…":"Submit Application →"}</button>
-          </div>
-        </>}
-
-        <p style={{fontSize:12,color:"rgba(255,255,255,0.3)",textAlign:"center",marginTop:16}}>Already registered? <button onClick={()=>setMode("login")} style={{background:"none",border:"none",color:"#4DD994",cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:700}}>Sign in</button></p>
-      </div>
-    </div>
-  );
-}
-
-// ── SCREENS ───────────────────────────────────────────────────────────────────
-function DashboardScreen({biz,requests,bookings,setPage}){
-  const pending=requests.filter(r=>r.status==="open").length;
-  const inProg=bookings.filter(b=>b.status==="in_progress").length;
-  const earned=bookings.filter(b=>b.payment_status==="paid").reduce((s,b)=>s+(b.payout_amount||0),0);
-  return(
-    <div>
-      {biz.status==="pending"&&<div className="alert alert-warn">⏳ Account under review — expected approval within 24 hours. You can upload photos and add services while you wait.</div>}
-      {biz.status==="active"&&<div className="alert alert-success">✓ Your listing is live on xairod.com</div>}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:20}}>
-        {[["📥","New Requests",pending,"requests"],["✅","Active Jobs",inProg,"bookings"],["💰","Total Earned",fmt(earned)+" NGN","payouts"]].map(([icon,label,val,page])=>(
-          <div key={label} onClick={()=>setPage(page)} style={{background:"#141008",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:18,cursor:"pointer"}}>
-            <div style={{fontSize:24,marginBottom:8}}>{icon}</div>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#4DD994"}}>{val}</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:2}}>{label}</div>
-          </div>
-        ))}
-      </div>
-      <div className="card">
-        <div className="card-title">⚡ Complete Your Profile</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {[["📸","Add Photos","Upload business images","listing"],["🛎️","Add Services","List prices","services"],["🕐","Set Hours","Availability","availability"],["💳","Bank Account","Get paid","payouts"]].map(([icon,title,sub,pg])=>(
-            <button key={pg} onClick={()=>setPage(pg)} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"14px 12px",textAlign:"left",cursor:"pointer"}}>
-              <div style={{fontSize:20,marginBottom:6}}>{icon}</div>
-              <div style={{fontSize:12,fontWeight:700,color:"#FEFCF7",marginBottom:2}}>{title}</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>{sub}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RequestsScreen({biz,requests,onUpdate}){
-  const[quoteModal,setQuoteModal]=useState(null);
-  const[price,setPrice]=useState("");
-  const[timeline,setTimeline]=useState("");
-  const[note,setNote]=useState("");
-  const[saving,setSaving]=useState(false);
-  const[err,setErr]=useState("");
-  const[toast,setToast]=useState(null);
-
-  const sendQuote=async()=>{
-    if(!price||!timeline){setErr("Price and timeline required.");return;}
-    setSaving(true);setErr("");
-    const gross=parseFloat(price);
-    const comm=Math.round(gross*(biz.commission_rate||12)/100);
-    await sb.from("quotes").insert({request_id:quoteModal.id,business_id:biz.id,price:gross,commission_rate:biz.commission_rate||12,commission_amount:comm,payout_amount:gross-comm,timeline,notes:note,status:"pending"});
-    await sb.from("service_requests").update({status:"quoted"}).eq("id",quoteModal.id);
-    // Notify user
-    sb.from("notifications").insert({user_id:quoteModal.user_id,icon:"💬",message:`${biz.name} sent you a quote of ${fmt(gross)} NGN for request ${quoteModal.ref||""}. Go to My Requests to accept.`,type:"quote",metadata:{request_id:quoteModal.id}});
-    setToast({msg:"Quote sent!",type:"success"});
-    setQuoteModal(null);setPrice("");setTimeline("");setNote("");
-    setSaving(false);onUpdate();
-  };
-
-  return(
-    <div>
-      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
-      {requests.length===0?(
-        <div className="empty"><div className="empty-icon">📥</div><div className="empty-title">No requests yet</div><div className="empty-sub">When users send bookings they'll appear here</div></div>
-      ):(
-        <div>
-          {requests.map(req=>(
-            <div key={req.id} className="card" style={{borderLeft:`4px solid ${req.status==="in_progress"?"#4DD994":req.status==="quoted"?"#F5C550":"#888"}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:700,color:"#FEFCF7",marginBottom:2}}>{req.listing_name||"Service Request"}</div>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>Ref: {req.ref||req.id?.slice(0,8)} · {new Date(req.created_at).toLocaleDateString()}</div>
-                </div>
-                <span className={"pill pill-"+(req.status==="in_progress"?"green":req.status==="quoted"?"gold":"gray")}>{req.status||"open"}</span>
-              </div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:10}}>{req.what_i_need?.slice(0,150)}</div>
-              {req.when_needed&&<div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginBottom:8}}>📅 {req.when_needed}{req.budget&&" · 💰 "+req.budget}</div>}
-              {req.status==="open"&&<button className="btn-primary" style={{fontSize:12,padding:"8px 16px"}} onClick={()=>setQuoteModal(req)}>Send Quote</button>}
-              {req.status==="quoted"&&<div style={{fontSize:11,color:"#F5C550",fontWeight:600}}>⏳ Waiting for customer to accept and pay</div>}
-              {req.status==="in_progress"&&<div style={{fontSize:11,color:"#4DD994",fontWeight:600}}>✅ Payment confirmed — deliver the service</div>}
-            </div>
-          ))}
-        </div>
-      )}
-      {quoteModal&&(
-        <div className="overlay">
-          <div className="modal">
-            <div className="modal-title">Send Quote</div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginBottom:16}}>For: {quoteModal.listing_name||"Service"} · {quoteModal.ref||""}</div>
-            <div className="form-row">
-              <div className="form-group"><label className="label">Price (NGN) *</label><input className="input" type="number" value={price} onChange={e=>setPrice(e.target.value)} placeholder="50000"/></div>
-              <div className="form-group"><label className="label">Timeline *</label><input className="input" value={timeline} onChange={e=>setTimeline(e.target.value)} placeholder="e.g. 2 weeks"/></div>
-            </div>
-            <div className="form-group"><label className="label">Notes (optional)</label><textarea className="input" rows={3} value={note} onChange={e=>setNote(e.target.value)} placeholder="What's included…"/></div>
-            {price&&<div style={{background:"rgba(77,217,148,0.06)",border:"1px solid rgba(77,217,148,0.12)",borderRadius:8,padding:"10px 12px",marginBottom:12,fontSize:11,color:"rgba(255,255,255,0.4)"}}>
-              Your payout: {fmt(parseFloat(price||0)*(1-(biz.commission_rate||12)/100))} NGN after {biz.commission_rate||12}% commission
-            </div>}
-            {err&&<div className="alert alert-error">{err}</div>}
-            <div style={{display:"flex",gap:10}}>
-              <button className="btn-outline" onClick={()=>setQuoteModal(null)} style={{flex:1}}>Cancel</button>
-              <button className="btn-primary" onClick={sendQuote} disabled={saving} style={{flex:2}}>{saving?"Sending…":"Send Quote →"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BookingsScreen({biz,bookings,onUpdate}){
-  const[loading,setLoading]=useState(null);
-  const[toast,setToast]=useState(null);
-
-  const markComplete=async(b)=>{
-    setLoading(b.id);
-    const code="XR-CONF-"+Math.floor(100000+Math.random()*900000);
-    await sb.from("bookings").update({status:"awaiting_confirmation",confirmation_code:code,completed_at:new Date().toISOString()}).eq("id",b.id);
-    await sb.from("notifications").insert({user_id:b.user_id,icon:"🎉",message:`${biz.name} completed your service! Enter code ${code} to confirm and release payment.`,type:"completion",metadata:{booking_id:b.id,code}});
-    setToast({msg:"Marked complete. Code sent to customer.",type:"success"});
-    setLoading(null);onUpdate();
-  };
-
-  return(
-    <div>
-      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
-      {bookings.length===0?(
-        <div className="empty"><div className="empty-icon">✅</div><div className="empty-title">No bookings yet</div><div className="empty-sub">Confirmed paid bookings appear here</div></div>
-      ):(
-        <table>
-          <thead><tr><th>Customer</th><th>Service</th><th>Amount</th><th>Payout</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            {bookings.map(b=>(
-              <tr key={b.id}>
-                <td style={{fontSize:11}}>{b.user_id?.slice(0,8)}…</td>
-                <td style={{fontSize:11,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.service_description?.slice(0,40)||b.listing_name||"—"}</td>
-                <td style={{fontWeight:700,color:"#4DD994"}}>{fmt(b.gross_amount)} NGN</td>
-                <td style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{fmt(b.payout_amount)}</td>
-                <td><span className={"pill pill-"+(b.status==="completed"?"green":b.status==="in_progress"?"gold":"gray")}>{b.status}</span></td>
-                <td>{b.status==="in_progress"&&<button className="btn-primary" style={{fontSize:11,padding:"5px 12px"}} onClick={()=>markComplete(b)} disabled={loading===b.id}>{loading===b.id?"…":"Mark Complete"}</button>}
-                {b.confirmation_code&&<div style={{fontSize:9,color:"#4DD994",marginTop:4}}>Code: {b.confirmation_code}</div>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-function ServicesScreen({biz}){
-  const[services,setServices]=useState([]);
-  const[showAdd,setShowAdd]=useState(false);
-  const[form,setForm]=useState({name:"",description:"",price:"",currency:"NGN",duration_mins:60});
-  const[saving,setSaving]=useState(false);
-  const[toast,setToast]=useState(null);
-
-  useEffect(()=>{
-    if(!biz?.id) return;
-    sb.from("services").select("*").eq("business_id",biz.id).order("created_at",{ascending:false}).then(({data})=>{if(data)setServices(data);});
-  },[biz?.id]);
-
-  const add=async()=>{
-    if(!form.name||!form.price){return;}
-    setSaving(true);
-    const{data}=await sb.from("services").insert({business_id:biz.id,listing_id:biz.listing_id||null,...form,price:parseFloat(form.price),duration_mins:parseInt(form.duration_mins),available:true}).select().single();
-    if(data){
-      setServices(p=>[data,...p]);
-      if(biz.listing_id){
-        const allSvcs=[data,...services].map(s=>({name:s.name,price:s.price,currency:s.currency,duration_mins:s.duration_mins}));
-        sb.from("listings").update({services:allSvcs}).eq("id",biz.listing_id);
-      }
+$('btn-register').addEventListener('click', async()=>{
+  const name=$('reg-name').value.trim(), city=$('reg-city').value.trim();
+  const email=$('auth-email').value.trim(), pass=$('auth-pass').value;
+  const cat=$('reg-cat').value, desc=$('reg-desc').value.trim();
+  const docs=$('reg-docs').files;
+  if(!name||!email||!pass||!city){showAuthErr("Fill all required fields.");return;}
+  if(!$('reg-agree').checked){showAuthErr("Please agree to the terms.");return;}
+  if(!docs.length){showAuthErr("Upload at least one KYC document.");return;}
+  $('btn-register').textContent='Submitting…';
+  try{
+    const{data:authData,error:signErr}=await sb.auth.signUp({email,password:pass});
+    if(signErr&&!signErr.message.includes('already'))throw signErr;
+    await sb.auth.signInWithPassword({email,password:pass});
+    const uid=(await sb.auth.getUser()).data.user.id;
+    const{data:biz,error:bizErr}=await sb.from('business_accounts').insert({user_id:uid,name,email,category:cat,city,description:desc,status:'pending',kyc_status:'submitted',commission_rate:12}).select().single();
+    if(bizErr)throw bizErr;
+    for(const doc of docs){
+      const fp=`kyc/${biz.id}/${Date.now()}_${doc.name}`;
+      await sb.storage.from('kyc-documents').upload(fp,doc);
+      await sb.from('kyc_documents').insert({business_id:biz.id,document_type:doc.name,file_path:fp,status:'pending'});
     }
-    setForm({name:"",description:"",price:"",currency:"NGN",duration_mins:60});
-    setShowAdd(false);setSaving(false);setToast({msg:"Service added — live on Xairod",type:"success"});
-  };
+    await loadApp();
+  }catch(e){showAuthErr(e.message);$('btn-register').textContent='Submit Application →';}
+});
 
-  const toggle=async(svc)=>{
-    await sb.from("services").update({available:!svc.available}).eq("id",svc.id);
-    setServices(p=>p.map(s=>s.id===svc.id?{...s,available:!s.available}:s));
-  };
+function showAuthErr(msg){ const e=$('auth-error'); e.textContent=msg; e.classList.remove('hidden'); }
 
-  const del=async(id)=>{
-    if(!window.confirm("Delete this service?")) return;
-    await sb.from("services").delete().eq("id",id);
-    setServices(p=>p.filter(s=>s.id!==id));
-  };
+$('btn-signout').addEventListener('click', async()=>{ await sb.auth.signOut(); location.reload(); });
+$('mob-menu').addEventListener('click', ()=>{ $('sidebar').classList.toggle('open'); $('mob-overlay').classList.toggle('open'); });
+$('mob-overlay').addEventListener('click', ()=>{ $('sidebar').classList.remove('open'); $('mob-overlay').classList.remove('open'); });
 
-  return(
-    <div>
-      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <div><p style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginTop:2}}>Services appear on your Xairod listing</p></div>
-        <button className="btn-primary" onClick={()=>setShowAdd(true)}>+ Add Service</button>
-      </div>
-      {services.length===0?(
-        <div className="empty"><div className="empty-icon">🛎️</div><div className="empty-title">No services yet</div><div className="empty-sub">Add your services with prices</div></div>
-      ):services.map(svc=>(
-        <div key={svc.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
-              <span style={{fontSize:13,fontWeight:700,color:"#FEFCF7"}}>{svc.name}</span>
-              <span className={"pill pill-"+(svc.available?"green":"gray")}>{svc.available?"Live":"Hidden"}</span>
-            </div>
-            {svc.description&&<div style={{fontSize:11,color:"rgba(255,255,255,0.35)",marginBottom:4}}>{svc.description}</div>}
-            <span style={{fontFamily:"'Fraunces',serif",fontSize:16,fontWeight:900,color:"#4DD994"}}>{fmt(svc.price)} {svc.currency}</span>
-            {svc.duration_mins>0&&<span style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginLeft:8}}>· {svc.duration_mins<60?svc.duration_mins+"min":Math.floor(svc.duration_mins/60)+"h"}</span>}
-          </div>
-          <div style={{display:"flex",gap:6}}>
-            <button className="btn-outline" style={{fontSize:10,padding:"4px 10px"}} onClick={()=>toggle(svc)}>{svc.available?"Hide":"Show"}</button>
-            <button className="btn-danger" onClick={()=>del(svc.id)}>Delete</button>
-          </div>
-        </div>
-      ))}
-      {showAdd&&(
-        <div className="overlay">
-          <div className="modal">
-            <div className="modal-title">Add Service</div>
-            <div className="form-group"><label className="label">Service Name *</label><input className="input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Full Admission Package"/></div>
-            <div className="form-group"><label className="label">Description</label><textarea className="input" rows={2} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="What's included?"/></div>
-            <div className="form-row">
-              <div className="form-group"><label className="label">Price *</label><input className="input" type="number" value={form.price} onChange={e=>setForm({...form,price:e.target.value})} placeholder="50000"/></div>
-              <div className="form-group"><label className="label">Currency</label>
-                <select className="input" value={form.currency} onChange={e=>setForm({...form,currency:e.target.value})}>
-                  <option value="NGN">NGN (₦)</option><option value="EGP">EGP</option><option value="USD">USD</option>
-                </select>
-              </div>
-            </div>
-            <div className="form-group"><label className="label">Duration</label>
-              <select className="input" value={form.duration_mins} onChange={e=>setForm({...form,duration_mins:e.target.value})}>
-                {[30,60,90,120,180,240,480,1440,0].map(m=><option key={m} value={m}>{m===0?"N/A":m<60?m+"min":Math.floor(m/60)+"h"+(m%60?m%60+"m":"")}</option>)}
-              </select>
-            </div>
-            <div style={{display:"flex",gap:10}}>
-              <button className="btn-outline" onClick={()=>setShowAdd(false)} style={{flex:1}}>Cancel</button>
-              <button className="btn-primary" onClick={add} disabled={saving} style={{flex:2}}>{saving?"Adding…":"Add Service →"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+// ── LOAD APP ──────────────────────────────────────────────────────────────────
+async function loadApp(){
+  const{data:rows}=await sb.from('business_accounts').select('*').eq('user_id',(await sb.auth.getUser()).data.user.id).limit(1);
+  if(!rows||!rows[0]){showAuthErr("No business account found.");await sb.auth.signOut();return;}
+  BIZ=rows[0];
+  $('auth-screen').classList.add('hidden');
+  $('app-screen').classList.remove('hidden');
+  $('sb-biz-name').textContent=BIZ.name||'—';
+  $('sb-biz-status').innerHTML=BIZ.status==='active'?'<span style="color:var(--green)">● Live</span>':'<span style="color:#F5C550">● Pending Review</span>';
+  $('sb-email').textContent=BIZ.email||'';
+  $('topbar-right').textContent=BIZ.name;
+  setupNav();
+  await refreshData();
+  navigate('dashboard');
 }
 
-function AvailabilityScreen({biz}){
-  const DAYS=[{k:"mon",l:"Monday"},{k:"tue",l:"Tuesday"},{k:"wed",l:"Wednesday"},{k:"thu",l:"Thursday"},{k:"fri",l:"Friday"},{k:"sat",l:"Saturday"},{k:"sun",l:"Sunday"}];
-  const DEF={mon:{open:true,from:"09:00",to:"17:00"},tue:{open:true,from:"09:00",to:"17:00"},wed:{open:true,from:"09:00",to:"17:00"},thu:{open:true,from:"09:00",to:"17:00"},fri:{open:true,from:"09:00",to:"17:00"},sat:{open:false,from:"10:00",to:"14:00"},sun:{open:false,from:"10:00",to:"14:00"}};
-  const[hours,setHours]=useState(DEF);
-  const[blocked,setBlocked]=useState([]);
-  const[newBlock,setNewBlock]=useState("");
-  const[saved,setSaved]=useState(false);
-  const[toast,setToast]=useState(null);
-
-  useEffect(()=>{
-    if(!biz?.id) return;
-    if(biz.listing_id) sb.from("listings").select("opening_hours").eq("id",biz.listing_id).single().then(({data})=>{if(data?.opening_hours&&Object.keys(data.opening_hours).length>0)setHours(data.opening_hours);});
-    sb.from("booking_slots").select("slot_date").eq("business_id",biz.id).eq("is_blocked",true).then(({data})=>{if(data)setBlocked(data.map(d=>d.slot_date));});
-  },[biz?.id]);
-
-  const save=async()=>{
-    await sb.from("business_accounts").update({opening_hours:hours}).eq("id",biz.id);
-    if(biz.listing_id) await sb.from("listings").update({opening_hours:hours}).eq("id",biz.listing_id);
-    setSaved(true);setTimeout(()=>setSaved(false),2500);
-  };
-
-  const blockDate=async()=>{
-    if(!newBlock) return;
-    await sb.from("booking_slots").insert({business_id:biz.id,slot_date:newBlock,is_blocked:true});
-    setBlocked(p=>[...p,newBlock]);setNewBlock("");
-  };
-
-  const unblock=async(d)=>{
-    await sb.from("booking_slots").delete().eq("business_id",biz.id).eq("slot_date",d).eq("is_blocked",true);
-    setBlocked(p=>p.filter(x=>x!==d));
-  };
-
-  return(
-    <div>
-      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
-      <div className="card">
-        <div className="card-title">Opening Hours</div>
-        {DAYS.map(day=>(
-          <div key={day.k} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10,paddingBottom:10,borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-            <div style={{width:90,fontSize:12,fontWeight:600,color:hours[day.k]?.open?"#FEFCF7":"rgba(255,255,255,0.25)"}}>{day.l}</div>
-            <button onClick={()=>setHours(h=>({...h,[day.k]:{...h[day.k],open:!h[day.k]?.open}}))} style={{width:40,height:22,borderRadius:11,background:hours[day.k]?.open?"#4DD994":"rgba(255,255,255,0.1)",border:"none",cursor:"pointer",position:"relative",flexShrink:0}}>
-              <div style={{width:16,height:16,borderRadius:"50%",background:"white",position:"absolute",top:3,left:hours[day.k]?.open?21:3,transition:"left 0.2s"}}/>
-            </button>
-            {hours[day.k]?.open?(
-              <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                <input type="time" value={hours[day.k]?.from||"09:00"} onChange={e=>setHours(h=>({...h,[day.k]:{...h[day.k],from:e.target.value}}))} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,color:"#FEFCF7",padding:"3px 7px",fontSize:11}}/>
-                <span style={{color:"rgba(255,255,255,0.3)",fontSize:11}}>to</span>
-                <input type="time" value={hours[day.k]?.to||"17:00"} onChange={e=>setHours(h=>({...h,[day.k]:{...h[day.k],to:e.target.value}}))} style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,color:"#FEFCF7",padding:"3px 7px",fontSize:11}}/>
-              </div>
-            ):<span style={{fontSize:11,color:"rgba(255,255,255,0.25)"}}>Closed</span>}
-          </div>
-        ))}
-        <button className="btn-primary" onClick={save} style={{marginTop:8}}>{saved?"✓ Saved":"Save Hours"}</button>
-      </div>
-      <div className="card">
-        <div className="card-title">Block Dates</div>
-        <div style={{display:"flex",gap:10,marginBottom:12}}>
-          <input type="date" value={newBlock} onChange={e=>setNewBlock(e.target.value)} className="input" style={{flex:1}}/>
-          <button className="btn-primary" onClick={blockDate} disabled={!newBlock}>Block</button>
-        </div>
-        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-          {blocked.length===0?<p style={{fontSize:11,color:"rgba(255,255,255,0.2)"}}>No dates blocked</p>:
-          blocked.map(d=>(
-            <div key={d} style={{background:"rgba(192,57,43,0.1)",border:"1px solid rgba(192,57,43,0.2)",borderRadius:8,padding:"5px 10px",display:"flex",gap:8,alignItems:"center"}}>
-              <span style={{fontSize:11,color:"#E74C3C",fontWeight:700}}>{new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</span>
-              <button onClick={()=>unblock(d)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.3)",cursor:"pointer",fontSize:14}}>×</button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+async function refreshData(){
+  const{data:reqs}=await sb.from('service_requests').select('*').eq('assigned_business_id',BIZ.id).in('status',['open','quoted','new']).order('created_at',{ascending:false});
+  REQUESTS=reqs||[];
+  const openCount=REQUESTS.filter(r=>r.status==='open').length;
+  const badge=$('badge-requests');
+  badge.textContent=openCount;
+  badge.classList.toggle('hidden',openCount===0);
+  const{data:bks}=await sb.from('bookings').select('*').eq('business_id',BIZ.id).order('created_at',{ascending:false});
+  BOOKINGS=bks||[];
 }
 
-function CustomersScreen({biz}){
-  const[requests,setRequests]=useState([]);
-  const[loading,setLoading]=useState(true);
-  useEffect(()=>{
-    if(!biz?.id) return;
-    sb.from("service_requests").select("*").eq("assigned_business_id",biz.id).order("created_at",{ascending:false}).then(({data})=>{if(data)setRequests(data);setLoading(false);});
-  },[biz?.id]);
-  const map={};
-  requests.forEach(r=>{if(!map[r.user_id]){map[r.user_id]={id:r.user_id,name:r.user_name||"Customer",count:0,last:r.created_at};}map[r.user_id].count++;});
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function setupNav(){
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      $('sidebar').classList.remove('open');
+      $('mob-overlay').classList.remove('open');
+      navigate(btn.dataset.page);
+    });
+  });
+}
+
+function navigate(page){
+  CURRENT_PAGE=page;
+  $('page-title').textContent={dashboard:'Dashboard',messages:'Messages',requests:'Requests',bookings:'Bookings',services:'Services',availability:'Availability',customers:'Customers',payouts:'Payouts',listing:'My Listing',settings:'Settings'}[page]||page;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  const c=$('page-content');
+  c.innerHTML='';
+  const fns={dashboard:renderDashboard,messages:renderMessages,requests:renderRequests,bookings:renderBookings,services:renderServices,availability:renderAvailability,customers:renderCustomers,payouts:renderPayouts,listing:renderListing,settings:renderSettings};
+  if(fns[page]) fns[page](c);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDashboard(c){
+  const pending=REQUESTS.filter(r=>r.status==='open').length;
+  const active=BOOKINGS.filter(b=>b.status==='in_progress').length;
+  const earned=BOOKINGS.filter(b=>b.payment_status==='paid').reduce((s,b)=>s+(b.payout_amount||0),0);
+  const statusAlert=BIZ.status==='active'
+    ?`<div class="alert alert-success">✓ Your listing is live on xairod.com</div>`
+    :`<div class="alert alert-warn">⏳ Under review — expected approval within 24h. You can upload photos and add services now.</div>`;
+  c.innerHTML=`
+    ${statusAlert}
+    <div class="grid-3">
+      <div class="stat-card" onclick="navigate('requests')"><div class="stat-num">${pending}</div><div class="stat-label">📥 New Requests</div></div>
+      <div class="stat-card" onclick="navigate('bookings')"><div class="stat-num">${active}</div><div class="stat-label">✅ Active Jobs</div></div>
+      <div class="stat-card" onclick="navigate('payouts')"><div class="stat-num">${fmt(earned)}</div><div class="stat-label">💰 NGN Earned</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Complete Your Profile</div>
+      <div class="grid-4">
+        ${[['📸','Add Photos','Upload images','listing'],['🛎️','Add Services','Set prices','services'],['🕐','Set Hours','Availability','availability'],['💳','Bank Account','Get paid','payouts']].map(([icon,title,sub,pg])=>`
+          <button onclick="navigate('${pg}')" style="background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;padding:14px 12px;text-align:left;cursor:pointer;color:var(--txt);">
+            <div style="font-size:20px;margin-bottom:6px;">${icon}</div>
+            <div style="font-size:12px;font-weight:700;margin-bottom:2px;">${title}</div>
+            <div style="font-size:10px;color:var(--sub);">${sub}</div>
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── REQUESTS ──────────────────────────────────────────────────────────────────
+function renderRequests(c){
+  if(!REQUESTS.length){c.innerHTML=`<div class="empty"><div class="empty-icon">📥</div><div class="empty-title">No requests yet</div><div class="empty-sub">When users send bookings they appear here</div></div>`;return;}
+  c.innerHTML='';
+  REQUESTS.forEach(req=>{
+    const d=document.createElement('div');
+    d.className=`req-card ${req.status||'open'}`;
+    d.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">${req.listing_name||'Service Request'}</div>
+          <div style="font-size:10px;color:var(--sub);">Ref: ${req.ref||req.id?.slice(0,8)} · ${new Date(req.created_at).toLocaleDateString()}</div>
+        </div>
+        <span class="pill pill-${req.status==='in_progress'?'green':req.status==='quoted'?'gold':'gray'}">${req.status||'open'}</span>
+      </div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.6;margin-bottom:10px;">${(req.what_i_need||'').slice(0,150)}</div>
+      ${req.when_needed?`<div style="font-size:10px;color:var(--sub);margin-bottom:8px;">📅 ${req.when_needed}${req.budget?' · 💰 '+req.budget:''}</div>`:''}
+      ${req.status==='open'?`<button class="btn btn-primary btn-sm" onclick="openQuoteModal('${req.id}')">Send Quote</button>`:''}
+      ${req.status==='quoted'?`<div style="font-size:11px;color:#F5C550;font-weight:600;">⏳ Waiting for customer to accept and pay</div>`:''}
+      ${req.status==='in_progress'?`<div style="font-size:11px;color:var(--green);font-weight:600;">✅ Payment confirmed — deliver the service. Check <button onclick="navigate('messages')" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:11px;font-weight:700;">Messages</button> to chat.</div>`:''}
+    `;
+    c.appendChild(d);
+  });
+}
+
+function openQuoteModal(reqId){
+  const req=REQUESTS.find(r=>r.id===reqId);
+  if(!req) return;
+  showModal(`
+    <div class="modal-title">Send Quote</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">For: ${req.listing_name||'Service'} · ${req.ref||''}</div>
+    <div class="grid-2">
+      <div class="form-group"><label>Price (NGN) *</label><input type="number" id="q-price" placeholder="50000"/></div>
+      <div class="form-group"><label>Timeline *</label><input type="text" id="q-timeline" placeholder="e.g. 2 weeks"/></div>
+    </div>
+    <div class="form-group"><label>Notes (optional)</label><textarea id="q-notes" rows="3" placeholder="What's included…"></textarea></div>
+    <div id="q-breakdown" style="background:rgba(77,217,148,0.06);border:1px solid rgba(77,217,148,0.12);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--sub);display:none;"></div>
+    <div id="q-err" class="alert alert-error hidden"></div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitQuote('${reqId}')" style="flex:2;">Send Quote →</button>
+    </div>
+  `);
+  $('q-price').addEventListener('input',()=>{
+    const p=parseFloat($('q-price').value)||0;
+    const comm=BIZ.commission_rate||12;
+    const b=$('q-breakdown');
+    if(p>0){b.style.display='block';b.textContent=`Your payout: ${fmt(Math.round(p*(1-comm/100)))} NGN after ${comm}% Xairod commission`;}
+    else b.style.display='none';
+  });
+}
+
+async function submitQuote(reqId){
+  const price=$('q-price').value, timeline=$('q-timeline').value;
+  const err=$('q-err');
+  if(!price||!timeline){err.textContent='Price and timeline required.';err.classList.remove('hidden');return;}
+  const req=REQUESTS.find(r=>r.id===reqId);
+  const gross=parseFloat(price), comm=BIZ.commission_rate||12;
+  const commAmt=Math.round(gross*comm/100);
+  await sb.from('quotes').insert({request_id:reqId,business_id:BIZ.id,price:gross,commission_rate:comm,commission_amount:commAmt,payout_amount:gross-commAmt,timeline,notes:$('q-notes').value,status:'pending'});
+  await sb.from('service_requests').update({status:'quoted'}).eq('id',reqId);
+  await sb.from('notifications').insert({user_id:req.user_id,icon:'💬',message:`${BIZ.name} sent you a quote of ${fmt(gross)} NGN. Go to My Requests to review.`,type:'quote',metadata:{request_id:reqId}});
+  closeModal();showToast('Quote sent!');
+  await refreshData();navigate('requests');
+}
+
+// ── BOOKINGS ──────────────────────────────────────────────────────────────────
+function renderBookings(c){
+  if(!BOOKINGS.length){c.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">No bookings yet</div><div class="empty-sub">Paid bookings appear here</div></div>`;return;}
+  c.innerHTML=`<table><thead><tr><th>Service</th><th>Amount</th><th>Payout</th><th>Status</th><th>Action</th></tr></thead><tbody id="bookings-body"></tbody></table>`;
+  const tbody=$('bookings-body');
+  BOOKINGS.forEach(b=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b.listing_name||b.service_description?.slice(0,30)||'—'}</td>
+      <td style="font-weight:700;color:var(--green);">${fmt(b.gross_amount)} NGN</td>
+      <td style="font-size:11px;color:var(--sub);">${fmt(b.payout_amount)}</td>
+      <td><span class="pill pill-${b.status==='completed'?'green':b.status==='in_progress'?'gold':'gray'}">${b.status||'—'}</span></td>
+      <td>${b.status==='in_progress'?`<button class="btn btn-primary btn-sm" onclick="markComplete('${b.id}','${b.user_id}')">Mark Complete</button>`:''}${b.confirmation_code?`<div style="font-size:9px;color:var(--green);margin-top:4px;">Code: ${b.confirmation_code}</div>`:''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function markComplete(bookingId,userId){
+  const code='XR-CONF-'+Math.floor(100000+Math.random()*900000);
+  await sb.from('bookings').update({status:'awaiting_confirmation',confirmation_code:code,completed_at:new Date().toISOString()}).eq('id',bookingId);
+  await sb.from('notifications').insert({user_id:userId,icon:'🎉',message:`${BIZ.name} completed your service! Enter code ${code} to confirm and release payment.`,type:'completion',metadata:{booking_id:bookingId,code}});
+  showToast('Marked complete. Confirmation code sent to customer.');
+  await refreshData();navigate('bookings');
+}
+
+// ── SERVICES ──────────────────────────────────────────────────────────────────
+let SERVICES=[];
+async function renderServices(c){
+  const{data}=await sb.from('services').select('*').eq('business_id',BIZ.id).order('created_at',{ascending:false});
+  SERVICES=data||[];
+  c.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <p style="font-size:11px;color:var(--sub);">Services appear on your Xairod listing</p>
+      <button class="btn btn-primary btn-sm" onclick="openAddService()">+ Add Service</button>
+    </div>
+    <div id="services-list"></div>`;
+  renderServicesList();
+}
+function renderServicesList(){
+  const c=$('services-list');
+  if(!c) return;
+  if(!SERVICES.length){c.innerHTML=`<div class="empty"><div class="empty-icon">🛎️</div><div class="empty-title">No services yet</div><div class="empty-sub">Add services with prices</div></div>`;return;}
+  c.innerHTML='';
+  SERVICES.forEach(svc=>{
+    const d=document.createElement('div');
+    d.className='card';d.style.display='flex';d.style.alignItems='center';d.style.gap='14px';
+    d.innerHTML=`
+      <div style="flex:1;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+          <span style="font-size:13px;font-weight:700;">${svc.name}</span>
+          <span class="pill pill-${svc.available?'green':'gray'}">${svc.available?'Live':'Hidden'}</span>
+        </div>
+        ${svc.description?`<div style="font-size:11px;color:var(--sub);margin-bottom:4px;">${svc.description}</div>`:''}
+        <span style="font-family:'Fraunces',serif;font-size:16px;font-weight:900;color:var(--green);">${fmt(svc.price)} ${svc.currency||'NGN'}</span>
+        ${svc.duration_mins>0?`<span style="font-size:10px;color:var(--sub);margin-left:8px;">· ${svc.duration_mins<60?svc.duration_mins+'min':Math.floor(svc.duration_mins/60)+'h'}</span>`:''}
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="toggleService('${svc.id}',${svc.available})">${svc.available?'Hide':'Show'}</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteService('${svc.id}')">Delete</button>`;
+    c.appendChild(d);
+  });
+}
+function openAddService(){
+  showModal(`
+    <div class="modal-title">Add Service</div>
+    <div class="form-group"><label>Service Name *</label><input type="text" id="s-name" placeholder="e.g. Full Admission Package"/></div>
+    <div class="form-group"><label>Description</label><textarea id="s-desc" rows="2" placeholder="What's included?"></textarea></div>
+    <div class="grid-2">
+      <div class="form-group"><label>Price *</label><input type="number" id="s-price" placeholder="50000"/></div>
+      <div class="form-group"><label>Currency</label><select id="s-currency"><option value="NGN">NGN (₦)</option><option value="EGP">EGP</option><option value="USD">USD</option></select></div>
+    </div>
+    <div class="form-group"><label>Duration</label>
+      <select id="s-dur"><option value="30">30 min</option><option value="60" selected>1 hour</option><option value="90">1.5h</option><option value="120">2h</option><option value="180">3h</option><option value="240">4h</option><option value="480">8h</option><option value="1440">Full day</option><option value="0">N/A</option></select>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="addService()" style="flex:2;">Add Service →</button>
+    </div>
+  `);
+}
+async function addService(){
+  const name=$('s-name').value.trim(),price=$('s-price').value;
+  if(!name||!price){showToast('Name and price required','error');return;}
+  const{data}=await sb.from('services').insert({business_id:BIZ.id,listing_id:BIZ.listing_id||null,name,description:$('s-desc').value,price:parseFloat(price),currency:$('s-currency').value,duration_mins:parseInt($('s-dur').value),available:true}).select().single();
+  if(data){
+    SERVICES.unshift(data);
+    if(BIZ.listing_id){const allS=SERVICES.map(s=>({name:s.name,price:s.price,currency:s.currency,duration_mins:s.duration_mins}));await sb.from('listings').update({services:allS}).eq('id',BIZ.listing_id);}
+    renderServicesList();
+  }
+  closeModal();showToast('Service added — live on Xairod');
+}
+async function toggleService(id,current){
+  await sb.from('services').update({available:!current}).eq('id',id);
+  SERVICES=SERVICES.map(s=>s.id===id?{...s,available:!current}:s);
+  renderServicesList();
+}
+async function deleteService(id){
+  if(!confirm('Delete this service?')) return;
+  await sb.from('services').delete().eq('id',id);
+  SERVICES=SERVICES.filter(s=>s.id!==id);
+  renderServicesList();showToast('Service deleted','error');
+}
+
+// ── AVAILABILITY ──────────────────────────────────────────────────────────────
+const DAYS=[{k:'mon',l:'Monday'},{k:'tue',l:'Tuesday'},{k:'wed',l:'Wednesday'},{k:'thu',l:'Thursday'},{k:'fri',l:'Friday'},{k:'sat',l:'Saturday'},{k:'sun',l:'Sunday'}];
+let HOURS={mon:{open:true,from:'09:00',to:'17:00'},tue:{open:true,from:'09:00',to:'17:00'},wed:{open:true,from:'09:00',to:'17:00'},thu:{open:true,from:'09:00',to:'17:00'},fri:{open:true,from:'09:00',to:'17:00'},sat:{open:false,from:'10:00',to:'14:00'},sun:{open:false,from:'10:00',to:'14:00'}};
+let BLOCKED=[];
+
+async function renderAvailability(c){
+  if(BIZ.listing_id){const{data}=await sb.from('listings').select('opening_hours').eq('id',BIZ.listing_id).single();if(data?.opening_hours&&Object.keys(data.opening_hours).length)HOURS=data.opening_hours;}
+  const{data:bl}=await sb.from('booking_slots').select('slot_date').eq('business_id',BIZ.id).eq('is_blocked',true);
+  BLOCKED=(bl||[]).map(d=>d.slot_date);
+  renderAvailabilityHTML(c);
+}
+
+function renderAvailabilityHTML(c){
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title">Opening Hours</div>
+      <div id="hours-rows"></div>
+      <button class="btn btn-primary btn-sm" onclick="saveHours()" style="margin-top:8px;" id="save-hours-btn">Save Hours</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Block Dates</div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <input type="date" id="new-block" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--bdr);background:rgba(255,255,255,0.05);color:var(--txt);font-size:12px;"/>
+        <button class="btn btn-primary btn-sm" onclick="blockDate()">Block</button>
+      </div>
+      <div id="blocked-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>`;
+  renderHoursRows();renderBlockedList();
+}
+
+function renderHoursRows(){
+  const c=$('hours-rows');if(!c) return;c.innerHTML='';
+  DAYS.forEach(day=>{
+    const h=HOURS[day.k]||{open:false,from:'09:00',to:'17:00'};
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.04);';
+    row.innerHTML=`
+      <div style="width:90px;font-size:12px;font-weight:600;color:${h.open?'var(--txt)':'var(--sub)'};">${day.l}</div>
+      <button class="toggle-btn" id="toggle-${day.k}" style="background:${h.open?'var(--green)':'rgba(255,255,255,0.1)'};" onclick="toggleDay('${day.k}')"><div class="toggle-dot" style="left:${h.open?'21':'3'}px;"></div></button>
+      <div id="times-${day.k}" style="display:flex;gap:6px;align-items:center;${h.open?'':'display:none!important'}">
+        <input type="time" value="${h.from||'09:00'}" id="from-${day.k}" style="background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);padding:3px 7px;font-size:11px;" onchange="updateHour('${day.k}','from',this.value)"/>
+        <span style="font-size:11px;color:var(--sub);">to</span>
+        <input type="time" value="${h.to||'17:00'}" id="to-${day.k}" style="background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);padding:3px 7px;font-size:11px;" onchange="updateHour('${day.k}','to',this.value)"/>
+      </div>
+      ${!h.open?`<span style="font-size:11px;color:var(--sub);" id="closed-${day.k}">Closed</span>`:`<span style="display:none;" id="closed-${day.k}">Closed</span>`}`;
+    c.appendChild(row);
+  });
+}
+
+function toggleDay(k){
+  HOURS[k]={...HOURS[k],open:!HOURS[k].open};
+  const btn=$(`toggle-${k}`),times=$(`times-${k}`),closed=$(`closed-${k}`);
+  btn.style.background=HOURS[k].open?'var(--green)':'rgba(255,255,255,0.1)';
+  btn.querySelector('.toggle-dot').style.left=HOURS[k].open?'21px':'3px';
+  if(times){times.style.display=HOURS[k].open?'flex':'none';}
+  if(closed) closed.style.display=HOURS[k].open?'none':'inline';
+}
+function updateHour(k,field,val){HOURS[k]={...HOURS[k],[field]:val};}
+async function saveHours(){
+  await sb.from('business_accounts').update({opening_hours:HOURS}).eq('id',BIZ.id);
+  if(BIZ.listing_id) await sb.from('listings').update({opening_hours:HOURS}).eq('id',BIZ.listing_id);
+  showToast('Hours saved and live on Xairod');
+}
+function renderBlockedList(){
+  const c=$('blocked-list');if(!c) return;c.innerHTML='';
+  if(!BLOCKED.length){c.innerHTML='<span style="font-size:11px;color:var(--sub);">No dates blocked</span>';return;}
+  BLOCKED.forEach(d=>{
+    const chip=document.createElement('div');
+    chip.style.cssText='background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.2);border-radius:8px;padding:5px 10px;display:flex;gap:8px;align-items:center;';
+    chip.innerHTML=`<span style="font-size:11px;color:var(--red);font-weight:700;">${new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span><button onclick="unblockDate('${d}')" style="background:none;border:none;color:var(--sub);cursor:pointer;font-size:14px;">×</button>`;
+    $('blocked-list').appendChild(chip);
+  });
+}
+async function blockDate(){const d=$('new-block').value;if(!d) return;await sb.from('booking_slots').insert({business_id:BIZ.id,slot_date:d,is_blocked:true});BLOCKED.push(d);$('new-block').value='';renderBlockedList();}
+async function unblockDate(d){await sb.from('booking_slots').delete().eq('business_id',BIZ.id).eq('slot_date',d).eq('is_blocked',true);BLOCKED=BLOCKED.filter(x=>x!==d);renderBlockedList();}
+
+// ── CUSTOMERS ─────────────────────────────────────────────────────────────────
+async function renderCustomers(c){
+  const{data}=await sb.from('service_requests').select('*').eq('assigned_business_id',BIZ.id).order('created_at',{ascending:false});
+  const map={};(data||[]).forEach(r=>{if(!map[r.user_id]){map[r.user_id]={name:r.user_name||'Customer',count:0,last:r.created_at};}map[r.user_id].count++;});
   const customers=Object.values(map);
-  return loading?<div style={{padding:40,textAlign:"center",color:"rgba(255,255,255,0.3)"}}>Loading…</div>:
-  customers.length===0?<div className="empty"><div className="empty-icon">👥</div><div className="empty-title">No customers yet</div></div>:(
-    <div>
-      {customers.map(cu=>(
-        <div key={cu.id} className="card" style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:40,height:40,borderRadius:"50%",background:"#0A6B3E",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:"white",flexShrink:0}}>{cu.name[0]?.toUpperCase()||"?"}</div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#FEFCF7"}}>{cu.name}</div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>Last: {new Date(cu.last).toLocaleDateString()}</div>
-          </div>
-          <div style={{fontSize:12,fontWeight:800,color:"#4DD994"}}>{cu.count} request{cu.count!==1?"s":""}</div>
-        </div>
-      ))}
-    </div>
-  );
+  if(!customers.length){c.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">No customers yet</div></div>`;return;}
+  c.innerHTML='';
+  customers.forEach(cu=>{
+    const d=document.createElement('div');d.className='card';d.style.display='flex';d.style.alignItems='center';d.style.gap='12px';
+    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">${cu.name[0]?.toUpperCase()||'?'}</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${cu.name}</div><div style="font-size:10px;color:var(--sub);">Last: ${new Date(cu.last).toLocaleDateString()}</div></div><div style="font-size:12px;font-weight:800;color:var(--green);">${cu.count} request${cu.count!==1?'s':''}</div>`;
+    c.appendChild(d);
+  });
 }
 
-function PayoutsScreen({biz,bookings}){
-  const[bankForm,setBankForm]=useState({account_name:"",account_number:"",bank_name:"",currency:"NGN",paystack_recipient_code:""});
-  const[bankSaved,setBankSaved]=useState(false);
-  const paid=bookings.filter(b=>b.payment_status==="paid");
+// ── PAYOUTS ───────────────────────────────────────────────────────────────────
+async function renderPayouts(c){
+  let bankForm={account_name:'',account_number:'',bank_name:'',currency:'NGN',paystack_recipient_code:''};
+  const{data}=await sb.from('business_accounts').select('payout_account').eq('id',BIZ.id).single();
+  if(data?.payout_account) bankForm={...bankForm,...data.payout_account};
+  const paid=BOOKINGS.filter(b=>b.payment_status==='paid');
   const earned=paid.reduce((s,b)=>s+(b.payout_amount||0),0);
-
-  useEffect(()=>{
-    if(!biz?.id) return;
-    sb.from("business_accounts").select("payout_account").eq("id",biz.id).single().then(({data})=>{if(data?.payout_account)setBankForm(data.payout_account);});
-  },[biz?.id]);
-
-  const saveBank=async()=>{
-    await sb.from("business_accounts").update({payout_account:bankForm}).eq("id",biz.id);
-    setBankSaved(true);setTimeout(()=>setBankSaved(false),2500);
-  };
-
-  return(
-    <div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:20}}>
-        {[["Total Earned",fmt(earned)+" NGN"],["Completed Jobs",paid.length],["Commission Rate",(biz.commission_rate||12)+"%"]].map(([l,v])=>(
-          <div key={l} className="card" style={{textAlign:"center"}}>
-            <div style={{fontFamily:"'Fraunces',serif",fontSize:22,fontWeight:900,color:"#4DD994",marginBottom:4}}>{v}</div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>{l}</div>
-          </div>
-        ))}
-      </div>
-      <div className="card">
-        <div className="card-title">💳 Payout Account Details</div>
-        <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:14}}>
-          ✅ <strong style={{color:"#4DD994"}}>Paystack is live.</strong> All transactions processed via Paystack. Payouts processed every Friday. Your details are only visible to Xairod admins.
-        </div>
-        <div className="form-row">
-          <div className="form-group"><label className="label">Account Name</label><input className="input" value={bankForm.account_name} onChange={e=>setBankForm({...bankForm,account_name:e.target.value})} placeholder="As registered with bank"/></div>
-          <div className="form-group"><label className="label">Account Number</label><input className="input" value={bankForm.account_number} onChange={e=>setBankForm({...bankForm,account_number:e.target.value})} placeholder="10-digit NUBAN" maxLength="10"/></div>
-        </div>
-        <div className="form-row">
-          <div className="form-group"><label className="label">Bank Name</label>
-            <select className="input" value={bankForm.bank_name} onChange={e=>setBankForm({...bankForm,bank_name:e.target.value})}>
-              <option value="">Select bank…</option>
-              {["Access Bank","First Bank","GTBank","UBA","Zenith Bank","Fidelity Bank","FCMB","Kuda Bank","Opay","Palmpay","CIB Egypt","Banque Misr","Other"].map(b=><option key={b} value={b}>{b}</option>)}
-            </select>
-          </div>
-          <div className="form-group"><label className="label">Currency</label>
-            <select className="input" value={bankForm.currency} onChange={e=>setBankForm({...bankForm,currency:e.target.value})}>
-              <option value="NGN">NGN — Naira</option><option value="EGP">EGP — Egyptian Pound</option><option value="USD">USD</option>
-            </select>
-          </div>
-        </div>
-        <div className="form-group"><label className="label">Paystack Recipient Code (optional)</label><input className="input" value={bankForm.paystack_recipient_code} onChange={e=>setBankForm({...bankForm,paystack_recipient_code:e.target.value})} placeholder="RCP_xxxxxxxxxxxx"/></div>
-        <button className="btn-primary" onClick={saveBank}>{bankSaved?"✓ Saved":"Save Payout Details"}</button>
-      </div>
+  c.innerHTML=`
+    <div class="grid-3">
+      <div class="stat-card"><div class="stat-num">${fmt(earned)}</div><div class="stat-label">NGN Total Earned</div></div>
+      <div class="stat-card"><div class="stat-num">${paid.length}</div><div class="stat-label">Completed Jobs</div></div>
+      <div class="stat-card"><div class="stat-num">${BIZ.commission_rate||12}%</div><div class="stat-label">Commission Rate</div></div>
     </div>
-  );
+    <div class="card">
+      <div class="card-title">💳 Payout Account Details</div>
+      <div class="alert alert-success" style="margin-bottom:14px;">✅ <strong>Paystack is live.</strong> All transactions via Paystack. Payouts every Friday. Details only visible to Xairod admins.</div>
+      <div class="grid-2">
+        <div class="form-group"><label>Account Name</label><input type="text" id="bank-name" value="${bankForm.account_name}" placeholder="As registered with bank"/></div>
+        <div class="form-group"><label>Account Number</label><input type="text" id="bank-num" value="${bankForm.account_number}" placeholder="10-digit NUBAN" maxlength="10"/></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Bank Name</label>
+          <select id="bank-bank">
+            <option value="">Select bank…</option>
+            ${['Access Bank','First Bank','GTBank','UBA','Zenith Bank','Fidelity Bank','FCMB','Kuda Bank','Opay','Palmpay','CIB Egypt','Banque Misr','Other'].map(b=>`<option value="${b}"${bankForm.bank_name===b?' selected':''}>${b}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Currency</label>
+          <select id="bank-curr">
+            <option value="NGN"${bankForm.currency==='NGN'?' selected':''}>NGN — Naira</option>
+            <option value="EGP"${bankForm.currency==='EGP'?' selected':''}>EGP — Egyptian Pound</option>
+            <option value="USD"${bankForm.currency==='USD'?' selected':''}>USD</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Paystack Recipient Code (optional)</label><input type="text" id="bank-code" value="${bankForm.paystack_recipient_code}" placeholder="RCP_xxxxxxxxxxxx"/></div>
+      <button class="btn btn-primary btn-sm" onclick="saveBank()">Save Payout Details</button>
+    </div>`;
+}
+async function saveBank(){
+  const bf={account_name:$('bank-name').value,account_number:$('bank-num').value,bank_name:$('bank-bank').value,currency:$('bank-curr').value,paystack_recipient_code:$('bank-code').value};
+  await sb.from('business_accounts').update({payout_account:bf}).eq('id',BIZ.id);
+  showToast('Payout details saved');
 }
 
-function ListingScreen({biz,onUpdate}){
-  const[form,setForm]=useState({name:biz?.name||"",city:biz?.city||"",description:biz?.description||""});
-  const[images,setImages]=useState([]);
-  const[uploading,setUploading]=useState(false);
-  const[saved,setSaved]=useState(false);
-  const[toast,setToast]=useState(null);
-
-  useEffect(()=>{
-    if(!biz?.id) return;
-    const src=biz.listing_id?sb.from("listings").select("images").eq("id",biz.listing_id).single():sb.from("business_accounts").select("images").eq("id",biz.id).single();
-    src.then(({data})=>{if(data?.images&&Array.isArray(data.images))setImages(data.images);});
-  },[biz?.id,biz?.listing_id]);
-
-  const save=async()=>{
-    await sb.from("business_accounts").update({name:form.name,city:form.city,description:form.description}).eq("id",biz.id);
-    if(biz.listing_id) await sb.from("listings").update({name:form.name,city:form.city,description:form.description}).eq("id",biz.listing_id);
-    setSaved(true);setTimeout(()=>setSaved(false),2500);setToast({msg:"Changes saved and live on Xairod",type:"success"});onUpdate();
-  };
-
-  const upload=async(file)=>{
-    if(!file) return;
-    if(file.size>5*1024*1024){setToast({msg:"Max 5MB per image",type:"error"});return;}
-    if(images.length>=6){setToast({msg:"Maximum 6 images",type:"error"});return;}
-    setUploading(true);
-    const ext=file.name.split(".").pop();
-    const fp=`${biz.id}/${Date.now()}.${ext}`;
-    const{error}=await sb.storage.from("listing-images").upload(fp,file,{upsert:false});
-    if(error){setToast({msg:"Upload failed: "+error.message,type:"error"});setUploading(false);return;}
-    const{data:urlData}=sb.storage.from("listing-images").getPublicUrl(fp);
-    const newImgs=[...images,urlData.publicUrl];
-    setImages(newImgs);
-    if(biz.listing_id) await sb.from("listings").update({images:newImgs}).eq("id",biz.listing_id);
-    else await sb.from("business_accounts").update({images:newImgs}).eq("id",biz.id);
-    setToast({msg:"Photo uploaded",type:"success"});setUploading(false);
-  };
-
-  const del=async(url)=>{
-    const newImgs=images.filter(i=>i!==url);
-    setImages(newImgs);
-    if(biz.listing_id) await sb.from("listings").update({images:newImgs}).eq("id",biz.listing_id);
-    else await sb.from("business_accounts").update({images:newImgs}).eq("id",biz.id);
-    const fp=url.split("/listing-images/")[1];
-    if(fp) sb.storage.from("listing-images").remove([fp]);
-    setToast({msg:"Photo removed",type:"success"});
-  };
-
-  return(
-    <div>
-      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
-      {biz.status==="pending"&&<div className="alert alert-warn" style={{marginBottom:16}}>⏳ Under review. Fill in your details and upload photos now — they go live on approval.</div>}
-      {biz.status==="active"&&<div className="alert alert-success" style={{marginBottom:16}}>✓ Your listing is live on xairod.com</div>}
-
-      <div className="card">
-        <div className="card-title">📸 Business Photos</div>
-        <div style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:14}}>Up to 6 photos · JPG/PNG/WebP · Max 5MB each · First photo = cover image</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
-          {images.map((url,i)=>(
-            <div key={url} style={{position:"relative",aspectRatio:"4/3",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.1)"}}>
-              <img src={url} alt={`Photo ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-              {i===0&&<div style={{position:"absolute",top:6,left:6,background:"#4DD994",color:"#03311A",fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:4}}>COVER</div>}
-              <button onClick={()=>del(url)} style={{position:"absolute",top:6,right:6,width:24,height:24,borderRadius:"50%",background:"rgba(0,0,0,0.6)",border:"none",color:"white",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
-            </div>
-          ))}
-          {images.length<6&&(
-            <label style={{aspectRatio:"4/3",borderRadius:10,border:"1.5px dashed rgba(255,255,255,0.15)",background:"rgba(255,255,255,0.02)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:6}}>
-              <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} onChange={e=>e.target.files[0]&&upload(e.target.files[0])} disabled={uploading}/>
-              <div style={{fontSize:24}}>{uploading?"⏳":"📷"}</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontWeight:600}}>{uploading?"Uploading…":"Add Photo"}</div>
-            </label>
-          )}
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-title">Business Details</div>
-        <div className="form-group"><label className="label">Business Name</label><input className="input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Your business name"/></div>
-        <div className="form-group"><label className="label">City / Location</label><input className="input" value={form.city} onChange={e=>setForm({...form,city:e.target.value})} placeholder="Cairo, Egypt"/></div>
-        <div className="form-group"><label className="label">Description</label><textarea className="input" rows={4} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></div>
-        <button className="btn-primary" onClick={save}>{saved?"✓ Saved":"Save Changes"}</button>
-      </div>
+// ── MY LISTING ────────────────────────────────────────────────────────────────
+let IMAGES=[];
+async function renderListing(c){
+  const src=BIZ.listing_id?sb.from('listings').select('images').eq('id',BIZ.listing_id).single():sb.from('business_accounts').select('images').eq('id',BIZ.id).single();
+  const{data}=await src;
+  IMAGES=(data?.images&&Array.isArray(data.images))?data.images:[];
+  c.innerHTML=`
+    ${BIZ.status==='pending'?`<div class="alert alert-warn">⏳ Under review. Fill details and upload photos now — they go live on approval.</div>`:`<div class="alert alert-success">✓ Your listing is live on xairod.com</div>`}
+    <div class="card">
+      <div class="card-title">📸 Business Photos</div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:14px;">Up to 6 photos · JPG/PNG/WebP · Max 5MB · First photo = cover image</div>
+      <div class="img-grid" id="img-grid"></div>
     </div>
-  );
+    <div class="card">
+      <div class="card-title">Business Details</div>
+      <div class="form-group"><label>Business Name</label><input type="text" id="l-name" value="${BIZ.name||''}"/></div>
+      <div class="form-group"><label>City / Location</label><input type="text" id="l-city" value="${BIZ.city||''}" placeholder="Cairo, Egypt"/></div>
+      <div class="form-group"><label>Description</label><textarea id="l-desc" rows="4">${BIZ.description||''}</textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="saveListing()">Save Changes</button>
+    </div>`;
+  renderImgGrid();
 }
 
-function MessagesScreen({biz}){
-  const[rooms,setRooms]=useState([]);
-  const[loading,setLoading]=useState(true);
-  const[active,setActive]=useState(null);
-  const[msgs,setMsgs]=useState([]);
-  const[input,setInput]=useState("");
-  const[sending,setSending]=useState(false);
-  const bottom=useRef(null);
-
-  useEffect(()=>{
-    if(!biz?.id) return;
-    sb.from("service_requests").select("*").eq("assigned_business_id",biz.id).eq("status","in_progress").order("created_at",{ascending:false})
-      .then(({data})=>{if(data)setRooms(data.map(r=>({id:r.id,listing_name:r.listing_name||"Chat",customer_id:r.user_id,ref:r.ref})));setLoading(false);});
-  },[biz?.id]);
-
-  const open=async(room)=>{
-    setActive(room);
-    const{data}=await sb.from("direct_messages").select("*").eq("room_id",room.id).order("created_at",{ascending:true});
-    setMsgs(data||[]);
-    await sb.from("direct_messages").update({read_by_business:true}).eq("room_id",room.id).neq("sender_role","business");
-    setTimeout(()=>bottom.current?.scrollIntoView({behavior:"smooth"}),100);
-  };
-
-  const send=async()=>{
-    if(!input.trim()||sending||!active) return;
-    setSending(true);
-    const{data}=await sb.from("direct_messages").insert({room_id:active.id,sender_id:biz.user_id,sender_role:"business",content:input.trim(),type:"text",read_by_customer:false,read_by_business:true,business_user_id:biz.user_id,customer_id:active.customer_id}).select().single();
-    if(data) setMsgs(p=>[...p,data]);
-    sb.from("notifications").insert({user_id:active.customer_id,icon:"💬",message:biz.name+" sent you a message. Tap to read.",type:"direct_message",metadata:{room_id:active.id}});
-    setInput("");setSending(false);
-    setTimeout(()=>bottom.current?.scrollIntoView({behavior:"smooth"}),100);
-  };
-
-  if(active) return(
-    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-        <button className="btn-outline" onClick={()=>{setActive(null);setMsgs([]);}}>← Back</button>
-        <div style={{fontFamily:"'Fraunces',serif",fontSize:15,fontWeight:800}}>{active.listing_name}</div>
-        <span style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>Ref: {active.ref||active.id?.slice(0,8)}</span>
-      </div>
-      <div style={{flex:1,overflowY:"auto",padding:"0 0 10px"}}>
-        {msgs.length===0&&<p style={{color:"rgba(255,255,255,0.3)",fontSize:12,textAlign:"center",padding:40}}>No messages yet. Start the conversation.</p>}
-        {msgs.map((m,i)=>{
-          const isMe=m.sender_role==="business";
-          return(
-            <div key={m.id||i} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start",marginBottom:10}}>
-              <div style={{maxWidth:"75%",background:isMe?"#0A6B3E":m.type==="system"?"rgba(200,134,26,0.1)":"rgba(255,255,255,0.07)",padding:"9px 13px",borderRadius:isMe?"12px 12px 4px 12px":"12px 12px 12px 4px",fontSize:12,lineHeight:1.55,color:m.type==="system"?"#F5C550":"#FEFCF7",border:m.type==="system"?"1px solid rgba(200,134,26,0.2)":"none",fontStyle:m.type==="system"?"italic":"normal",whiteSpace:"pre-wrap"}}>
-                {m.content}
-              </div>
-            </div>
-          );
-        })}
-        <div ref={bottom}/>
-      </div>
-      <div style={{display:"flex",gap:10,paddingTop:10,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-        <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type a message…" rows={2} className="input" style={{flex:1,resize:"none"}}/>
-        <button className="btn-primary" onClick={send} disabled={!input.trim()||sending} style={{alignSelf:"flex-end"}}>{sending?"…":"Send →"}</button>
-      </div>
-    </div>
-  );
-
-  return loading?<div style={{padding:40,textAlign:"center",color:"rgba(255,255,255,0.3)"}}>Loading…</div>:
-  rooms.length===0?<div className="empty"><div className="empty-icon">💬</div><div className="empty-title">No chats yet</div><div className="empty-sub">Chats open when a customer accepts your quote and pays</div></div>:(
-    <div>
-      {rooms.map(r=>(
-        <div key={r.id} className="card" style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer"}} onClick={()=>open(r)}>
-          <div style={{width:40,height:40,borderRadius:"50%",background:"rgba(77,217,148,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👤</div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#FEFCF7"}}>{r.listing_name}</div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.3)"}}>Ref: {r.ref||r.id?.slice(0,8)}</div>
-          </div>
-          <span style={{color:"rgba(255,255,255,0.3)",fontSize:18}}>›</span>
-        </div>
-      ))}
-    </div>
-  );
+function renderImgGrid(){
+  const g=$('img-grid');if(!g) return;g.innerHTML='';
+  IMAGES.forEach((url,i)=>{
+    const slot=document.createElement('div');slot.className='img-slot';
+    slot.innerHTML=`<img src="${url}" alt="Photo ${i+1}"/>${i===0?'<div class="img-cover-badge">COVER</div>':''}<button class="img-del" onclick="delImg('${url}')">×</button>`;
+    g.appendChild(slot);
+  });
+  if(IMAGES.length<6){
+    const add=document.createElement('label');add.className='img-add';
+    add.innerHTML=`<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="uploadImg(this)"/><span>📷</span><p>Add Photo</p>`;
+    g.appendChild(add);
+  }
 }
 
-function SettingsScreen({biz}){
-  const[phone,setPhone]=useState(biz?.phone||"");
-  const[saved,setSaved]=useState(false);
-  const save=async()=>{
-    await sb.from("business_accounts").update({phone}).eq("id",biz.id);
-    setSaved(true);setTimeout(()=>setSaved(false),2500);
-  };
-  return(
-    <div>
-      <div className="card">
-        <div className="card-title">📞 Contact Number (Private)</div>
-        <p style={{fontSize:11,color:"rgba(255,255,255,0.3)",marginBottom:14}}>Your WhatsApp/phone number. <strong style={{color:"#F5C550"}}>Never shown publicly.</strong> Only visible to Xairod admins.</p>
-        <div style={{display:"flex",gap:10}}>
-          <input className="input" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+234 800 000 0000" style={{flex:1}}/>
-          <button className="btn-primary" onClick={save}>{saved?"✓ Saved":"Save"}</button>
-        </div>
-      </div>
-      <div className="card">
-        <div className="card-title">Account Info</div>
-        {[["Business","name"],["Category",null],["Status","status"],["Email","email"]].map(([label,key])=>(
-          <div key={label} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-            <span style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>{label}</span>
-            <span style={{fontSize:11,fontWeight:700,color:biz?.status==="active"&&label==="Status"?"#4DD994":biz?.status==="pending"&&label==="Status"?"#F5C550":"#FEFCF7"}}>
-              {key==="status"?(biz.status==="active"?"✓ Active":"⏳ Pending"):key?biz[key]||"—":CATS[biz.category]||biz.category||"—"}
-            </span>
-          </div>
-        ))}
-        <div style={{marginTop:16,fontSize:11,color:"rgba(255,255,255,0.3)"}}>
-          Need help? <a href="mailto:hello@xairod.com" style={{color:"#4DD994"}}>hello@xairod.com</a> · <a href="https://t.me/ckairod" style={{color:"#4DD994"}}>t.me/ckairod</a>
-        </div>
-      </div>
-    </div>
-  );
+async function uploadImg(input){
+  const file=input.files[0];if(!file) return;
+  if(file.size>5*1024*1024){showToast('Max 5MB','error');return;}
+  showToast('Uploading…','warn');
+  const fp=`${BIZ.id}/${Date.now()}.${file.name.split('.').pop()}`;
+  const{error}=await sb.storage.from('listing-images').upload(fp,file,{upsert:false});
+  if(error){showToast('Upload failed: '+error.message,'error');return;}
+  const{data:ud}=sb.storage.from('listing-images').getPublicUrl(fp);
+  IMAGES.push(ud.publicUrl);
+  const tbl=BIZ.listing_id?sb.from('listings').update({images:IMAGES}).eq('id',BIZ.listing_id):sb.from('business_accounts').update({images:IMAGES}).eq('id',BIZ.id);
+  await tbl;
+  showToast('Photo uploaded ✓');renderImgGrid();
 }
 
-// ── MAIN APP ──────────────────────────────────────────────────────────────────
-function App(){
-  const[authUser,setAuthUser]=useState(null);
-  const[biz,setBiz]=useState(null);
-  const[page,setPage]=useState("dashboard");
-  const[requests,setRequests]=useState([]);
-  const[bookings,setBookings]=useState([]);
-  const[loading,setLoading]=useState(true);
-  const[sideOpen,setSideOpen]=useState(false);
-  const[newLeads,setNewLeads]=useState(0);
-
-  const loadData=async(bizId)=>{
-    const{data:reqs}=await sb.from("service_requests").select("*").eq("assigned_business_id",bizId).in("status",["open","quoted","new"]).order("created_at",{ascending:false});
-    setRequests(reqs||[]);
-    setNewLeads((reqs||[]).filter(r=>r.status==="open").length);
-    const{data:bks}=await sb.from("bookings").select("*").eq("business_id",bizId).order("created_at",{ascending:false});
-    setBookings(bks||[]);
-  };
-
-  useEffect(()=>{
-    sb.auth.getSession().then(async({data:{session}})=>{
-      if(session?.user){
-        const{data:rows}=await sb.from("business_accounts").select("*").eq("user_id",session.user.id).limit(1);
-        if(rows?.[0]){setAuthUser(session.user);setBiz(rows[0]);await loadData(rows[0].id);}
-      }
-      setLoading(false);
-    });
-    const{data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
-      if(event==="SIGNED_OUT"){setAuthUser(null);setBiz(null);}
-    });
-    return()=>subscription.unsubscribe();
-  },[]);
-
-  if(loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0D0A05"}}><div style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:900,color:"#4DD994"}}>Loading…</div></div>;
-  if(!authUser||!biz) return <AuthScreen onAuth={async(bizData)=>{setAuthUser((await sb.auth.getUser()).data.user);setBiz(bizData);await loadData(bizData.id);}}/>;
-
-  const NAV=[
-    {id:"dashboard",icon:"⊞",label:"Dashboard"},
-    {id:"messages",icon:"💬",label:"Messages"},
-    {id:"requests",icon:"📥",label:"Requests",badge:newLeads},
-    {id:"bookings",icon:"✅",label:"Bookings"},
-    {id:"services",icon:"🛎️",label:"Services"},
-    {id:"availability",icon:"📅",label:"Availability"},
-    {id:"customers",icon:"👥",label:"Customers"},
-    {id:"payouts",icon:"💰",label:"Payouts"},
-    {id:"listing",icon:"🏢",label:"My Listing"},
-    {id:"settings",icon:"⚙️",label:"Settings"},
-  ];
-
-  const PAGE_TITLES={dashboard:"Dashboard",messages:"Messages",requests:"Requests",bookings:"Bookings",services:"Services",availability:"Availability",customers:"Customers",payouts:"Payouts",listing:"My Listing",settings:"Settings"};
-
-  const SCREENS={
-    dashboard:<DashboardScreen biz={biz} requests={requests} bookings={bookings} setPage={setPage}/>,
-    messages:<MessagesScreen biz={biz}/>,
-    requests:<RequestsScreen biz={biz} requests={requests} onUpdate={()=>loadData(biz.id)}/>,
-    bookings:<BookingsScreen biz={biz} bookings={bookings} onUpdate={()=>loadData(biz.id)}/>,
-    services:<ServicesScreen biz={biz}/>,
-    availability:<AvailabilityScreen biz={biz}/>,
-    customers:<CustomersScreen biz={biz}/>,
-    payouts:<PayoutsScreen biz={biz} bookings={bookings}/>,
-    listing:<ListingScreen biz={biz} onUpdate={()=>loadData(biz.id)}/>,
-    settings:<SettingsScreen biz={biz}/>,
-  };
-
-  const Sidebar=()=>(
-    <div className={"sidebar"+(sideOpen?" open":"")}>
-      <div className="sidebar-logo">
-        <div className="logo-text"><span className="x">X</span>airod<span className="d">.</span></div>
-        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:2}}>Business Portal</div>
-      </div>
-      <nav className="nav">
-        {NAV.map(item=>(
-          <button key={item.id} className={"nav-item"+(page===item.id?" active":"")} onClick={()=>{setPage(item.id);setSideOpen(false);}}>
-            <span className="nav-icon">{item.icon}</span>
-            <span>{item.label}</span>
-            {item.badge>0&&<span className="badge">{item.badge}</span>}
-          </button>
-        ))}
-      </nav>
-      <div style={{padding:"16px 18px",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-        <div style={{fontSize:11,fontWeight:700,color:"#FEFCF7",marginBottom:2}}>{biz.name}</div>
-        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginBottom:12}}>{biz.email}</div>
-        <button className="btn-outline" style={{width:"100%",fontSize:11}} onClick={async()=>{await sb.auth.signOut();setAuthUser(null);setBiz(null);}}>Sign Out</button>
-      </div>
-    </div>
-  );
-
-  return(
-    <div className="layout">
-      <div className={"overlay-bg"+(sideOpen?" open":"")} onClick={()=>setSideOpen(false)}/>
-      <div className="mob-bar">
-        <button onClick={()=>setSideOpen(true)} style={{background:"none",border:"none",color:"#FEFCF7",fontSize:22,cursor:"pointer"}}>☰</button>
-        <div className="logo-text" style={{fontSize:18}}><span className="x">X</span>airod<span className="d">.</span></div>
-        <div style={{width:30}}/>
-      </div>
-      <Sidebar/>
-      <div className="main">
-        <div className="topbar">
-          <div className="page-title">{PAGE_TITLES[page]||page}</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.3)"}}>{biz.name} · <span style={{color:biz.status==="active"?"#4DD994":"#F5C550"}}>{biz.status==="active"?"● Live":"● Pending"}</span></div>
-        </div>
-        <div className="content">{SCREENS[page]||SCREENS.dashboard}</div>
-      </div>
-    </div>
-  );
+async function delImg(url){
+  IMAGES=IMAGES.filter(i=>i!==url);
+  const tbl=BIZ.listing_id?sb.from('listings').update({images:IMAGES}).eq('id',BIZ.listing_id):sb.from('business_accounts').update({images:IMAGES}).eq('id',BIZ.id);
+  await tbl;
+  const fp=url.split('/listing-images/')[1];
+  if(fp) sb.storage.from('listing-images').remove([fp]);
+  showToast('Photo removed');renderImgGrid();
 }
 
-const root=ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App/>);
+async function saveListing(){
+  const name=$('l-name').value.trim(),city=$('l-city').value.trim(),description=$('l-desc').value.trim();
+  await sb.from('business_accounts').update({name,city,description}).eq('id',BIZ.id);
+  if(BIZ.listing_id) await sb.from('listings').update({name,city,description}).eq('id',BIZ.listing_id);
+  BIZ={...BIZ,name,city,description};$('sb-biz-name').textContent=name;
+  showToast('Listing saved and live on Xairod');
+}
+
+// ── MESSAGES ──────────────────────────────────────────────────────────────────
+let ACTIVE_ROOM=null,CHAT_MSGS=[];
+async function renderMessages(c){
+  const{data:reqs}=await sb.from('service_requests').select('*').eq('assigned_business_id',BIZ.id).eq('status','in_progress').order('created_at',{ascending:false});
+  const rooms=reqs||[];
+  if(!rooms.length){c.innerHTML=`<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No chats yet</div><div class="empty-sub">Chats open when a customer accepts your quote and pays</div></div>`;return;}
+  c.innerHTML=`<div id="room-list"></div>`;
+  rooms.forEach(r=>{
+    const d=document.createElement('div');d.className='card';d.style.cssText='display:flex;align-items:center;gap:12px;cursor:pointer;';
+    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:rgba(77,217,148,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👤</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.listing_name||'Customer Chat'}</div><div style="font-size:10px;color:var(--sub);">Ref: ${r.ref||r.id?.slice(0,8)}</div></div><span style="color:var(--sub);font-size:18px;">›</span>`;
+    d.onclick=()=>openChat(r,c);
+    $('room-list').appendChild(d);
+  });
+}
+
+async function openChat(room,container){
+  ACTIVE_ROOM=room;
+  const{data}=await sb.from('direct_messages').select('*').eq('room_id',room.id).order('created_at',{ascending:true});
+  CHAT_MSGS=data||[];
+  await sb.from('direct_messages').update({read_by_business:true}).eq('room_id',room.id).neq('sender_role','business');
+  container.innerHTML=`
+    <button class="btn btn-outline btn-sm" onclick="navigate('messages')" style="margin-bottom:14px;">← Back to chats</button>
+    <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:800;margin-bottom:4px;">${room.listing_name||'Customer Chat'}</div>
+    <div style="font-size:10px;color:var(--sub);margin-bottom:16px;">Ref: ${room.ref||room.id?.slice(0,8)}</div>
+    <div id="chat-msgs" style="min-height:200px;max-height:400px;overflow-y:auto;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:10px;">
+      <textarea id="chat-input" placeholder="Type a message…" rows="2" style="flex:1;resize:none;padding:10px 13px;border-radius:10px;border:1px solid var(--bdr);background:rgba(255,255,255,0.05);color:var(--txt);font-family:'Outfit',sans-serif;font-size:13px;outline:none;"></textarea>
+      <button class="btn btn-primary btn-sm" onclick="sendChatMsg()" style="align-self:flex-end;">Send →</button>
+    </div>`;
+  renderChatMsgs();
+  $('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMsg();}});
+  // Realtime
+  if(CHAT_CHANNEL) sb.removeChannel(CHAT_CHANNEL);
+  CHAT_CHANNEL=sb.channel('chat_'+room.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:`room_id=eq.${room.id}`},payload=>{CHAT_MSGS.push(payload.new);renderChatMsgs();}).subscribe();
+}
+
+function renderChatMsgs(){
+  const c=$('chat-msgs');if(!c) return;c.innerHTML='';
+  CHAT_MSGS.forEach(m=>{
+    const isMe=m.sender_role==='business';
+    const row=document.createElement('div');row.className=`msg-row${isMe?' me':''}`;
+    const bubble=document.createElement('div');
+    bubble.className=`msg-bubble${isMe?' me':m.type==='system'?' system':' them'}`;
+    bubble.style.whiteSpace='pre-wrap';bubble.textContent=m.content;
+    row.appendChild(bubble);c.appendChild(row);
+  });
+  c.scrollTop=c.scrollHeight;
+}
+
+async function sendChatMsg(){
+  const input=$('chat-input');const txt=input.value.trim();
+  if(!txt||!ACTIVE_ROOM) return;
+  input.value='';
+  const{data:msg}=await sb.from('direct_messages').insert({room_id:ACTIVE_ROOM.id,sender_id:BIZ.user_id,sender_role:'business',content:txt,type:'text',read_by_customer:false,read_by_business:true,business_user_id:BIZ.user_id,customer_id:ACTIVE_ROOM.user_id}).select().single();
+  if(msg){CHAT_MSGS.push(msg);renderChatMsgs();}
+  await sb.from('notifications').insert({user_id:ACTIVE_ROOM.user_id,icon:'💬',message:`${BIZ.name} sent you a message. Tap to read.`,type:'direct_message',metadata:{room_id:ACTIVE_ROOM.id}});
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+async function renderSettings(c){
+  const{data}=await sb.from('business_accounts').select('phone').eq('id',BIZ.id).single();
+  const phone=data?.phone||'';
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title">📞 Contact Number (Private)</div>
+      <p style="font-size:11px;color:var(--sub);margin-bottom:14px;"><strong style="color:#F5C550;">Never shown publicly.</strong> Only visible to Xairod admins for coordination.</p>
+      <div style="display:flex;gap:10px;">
+        <input type="tel" id="s-phone" value="${phone}" placeholder="+234 800 000 0000" style="flex:1;"/>
+        <button class="btn btn-primary btn-sm" onclick="savePhone()">Save</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Account Info</div>
+      ${[['Business',BIZ.name],['Category',BIZ.category],['Status',BIZ.status==='active'?'✓ Active':'⏳ Pending'],['Email',BIZ.email]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="font-size:11px;color:var(--sub);">${l}</span><span style="font-size:11px;font-weight:700;">${v||'—'}</span></div>`).join('')}
+      <div style="margin-top:16px;font-size:11px;color:var(--sub);">Need help? <a href="mailto:hello@xairod.com" style="color:var(--green);">hello@xairod.com</a> · <a href="https://t.me/ckairod" style="color:var(--green);">t.me/ckairod</a></div>
+    </div>`;
+}
+async function savePhone(){await sb.from('business_accounts').update({phone:$('s-phone').value}).eq('id',BIZ.id);showToast('Phone saved');}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+sb.auth.getSession().then(async({data:{session}})=>{
+  if(session?.user){
+    const{data:rows}=await sb.from('business_accounts').select('*').eq('user_id',session.user.id).limit(1);
+    if(rows?.[0]){BIZ=rows[0];await loadApp();return;}
+  }
+});
 </script>
 </body>
 </html>
