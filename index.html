@@ -309,7 +309,7 @@ async function loadApp(){
 }
 
 async function refreshData(){
-  const{data:reqs}=await sb.from('service_requests').select('*').eq('assigned_business_id',BIZ.id).in('status',['open','quoted','new']).order('created_at',{ascending:false});
+  const{data:reqs}=await sb.from('service_requests').select('*').eq('assigned_business_id',BIZ.id).in('status',['open','quoted','new','in_progress']).order('created_at',{ascending:false});
   REQUESTS=reqs||[];
   const openCount=REQUESTS.filter(r=>r.status==='open').length;
   const badge=$('badge-requests');
