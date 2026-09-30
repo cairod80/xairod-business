@@ -430,7 +430,7 @@ async function submitQuote(reqId){
   const gross=parseFloat(price), comm=BIZ.commission_rate||12;
   const commAmt=Math.round(gross*comm/100);
   await sb.from('quotes').insert({request_id:reqId,business_id:BIZ.id,price:gross,commission_rate:comm,commission_amount:commAmt,payout_amount:gross-commAmt,timeline,notes:$('q-notes').value,status:'pending'});
-  await sb.from('service_requests').update({status:'quoted'}).eq('id',reqId);
+  await sb.from('service_requests').update({status:'quoted',assigned_business_id:BIZ.id}).eq('id',reqId);
   await sb.from('notifications').insert({user_id:req.user_id,icon:'💬',message:`${BIZ.name} sent you a quote of ${fmt(gross)} NGN. Go to My Requests to review.`,type:'quote',metadata:{request_id:reqId}});
   closeModal();showToast('Quote sent!');
   await refreshData();navigate('requests');
