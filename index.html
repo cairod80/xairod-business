@@ -769,28 +769,18 @@ async function saveListing(){
 // ── MESSAGES ──────────────────────────────────────────────────────────────────
 let ACTIVE_ROOM=null,CHAT_MSGS=[];
 async function renderMessages(c){
-  // Load via quotes table — works even if assigned_business_id is not set
-  const{data:bizQuotes}=await sb.from('quotes').select('request_id').eq('business_id',BIZ.id);
-  const qIds=(bizQuotes||[]).map(q=>q.request_id).filter(Boolean);
+  // Load from chat_rooms — this is where room_ids in direct_messages point to
+  const{data:rooms,error}=await sb.from('chat_rooms')
+    .select('*')
+    .or(`business_id.eq.${BIZ.id},business_user_id.eq.${BIZ.user_id}`)
+    .order('created_at',{ascending:false});
 
-  let rooms=[];
-  if(qIds.length>0){
-    const{data:reqs}=await sb.from('service_requests').select('*')
-      .in('id',qIds)
-      .order('created_at',{ascending:false});
-    rooms=reqs||[];
-    // Auto-fix assigned_business_id for any missing
-    for(const r of rooms){
-      if(!r.assigned_business_id){
-        sb.from('service_requests').update({assigned_business_id:BIZ.id}).eq('id',r.id);
-      }
-    }
-  }
-  if(!rooms.length){c.innerHTML=`<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No conversations yet</div><div class="empty-sub">When you send a quote and the customer accepts, the chat will appear here</div></div>`;return;}
+  if(error) console.warn('chat_rooms error:',error.message);
+  if(!rooms||!rooms.length){c.innerHTML=`<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No conversations yet</div><div class="empty-sub">When you send a quote and the customer accepts, the chat will appear here</div></div>`;return;}
   c.innerHTML=`<div id="room-list"></div>`;
   rooms.forEach(r=>{
     const d=document.createElement('div');d.className='card';d.style.cssText='display:flex;align-items:center;gap:12px;cursor:pointer;';
-    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:rgba(77,217,148,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👤</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.listing_name||'Customer Chat'}</div><div style="font-size:10px;color:var(--sub);">Ref: ${r.ref||r.id?.slice(0,8)}</div></div><span style="color:var(--sub);font-size:18px;">›</span>`;
+    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:rgba(77,217,148,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👤</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.listing_name||'Customer Chat'}</div><div style="font-size:10px;color:var(--sub);">Room: ${r.id?.slice(0,8)}</div></div><span style="color:var(--sub);font-size:18px;">›</span>`;
     d.onclick=()=>openChat(r,c);
     $('room-list').appendChild(d);
   });
@@ -843,9 +833,9 @@ async function sendChatMsg(){
     read_by_customer:false,
     read_by_business:true,
     business_user_id:BIZ.user_id,
-    customer_id:ACTIVE_ROOM.user_id,
+    customer_id:ACTIVE_ROOM.customer_id||null,
     business_id:BIZ.id,
-    request_id:ACTIVE_ROOM.id,
+    request_id:ACTIVE_ROOM.request_id||null,
   }).select().single();
   if(msg){CHAT_MSGS.push(msg);renderChatMsgs();}
   await sb.from('notifications').insert({user_id:ACTIVE_ROOM.user_id,icon:'💬',message:`${BIZ.name} sent you a message. Tap to read.`,type:'direct_message',metadata:{room_id:ACTIVE_ROOM.id}});
