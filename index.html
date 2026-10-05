@@ -814,11 +814,18 @@ function renderBizFilePreview(){
 
 async function uploadBizFile(file){
   const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-  const fp=`chat/${BIZ.id}/${Date.now()}_${safe}`;
-  const{error}=await sb.storage.from('chat-files').upload(fp,file,{upsert:false,contentType:file.type});
-  if(error){showToast('Upload failed: '+error.message,'error');return null;}
-  const{data:ud}=sb.storage.from('chat-files').getPublicUrl(fp);
-  return{url:ud.publicUrl,name:file.name,size:file.size,mimeType:file.type,isImage:isBizImg(file.name)};
+  const ts=Date.now();
+  for(const bucket of ['chat-files','listing-images']){
+    const fp=`chat/${BIZ.id}/${ts}_${safe}`;
+    const{error}=await sb.storage.from(bucket).upload(fp,file,{upsert:true,contentType:file.type});
+    if(!error){
+      const{data:ud}=sb.storage.from(bucket).getPublicUrl(fp);
+      return{url:ud.publicUrl,name:file.name,size:file.size,mimeType:file.type,isImage:isBizImg(file.name)};
+    }
+    console.warn('Upload to '+bucket+' failed:',error.message);
+  }
+  showToast('Upload failed — check connection','error');
+  return null;
 }
 async function renderMessages(c){
   // Load from chat_rooms — this is where room_ids in direct_messages point to
