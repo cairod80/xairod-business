@@ -769,19 +769,56 @@ async function saveListing(){
 // ── MESSAGES ──────────────────────────────────────────────────────────────────
 let ACTIVE_ROOM=null,CHAT_MSGS=[],BIZ_PENDING_FILE=null;
 
+function fmtBizSize(b){return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(0)+'KB';}
+function isBizImg(name){const e=(name||'').split('.').pop().toLowerCase();return['jpg','jpeg','png','gif','webp','heic'].includes(e);}
+
 async function attachBizFile(input){
   const file=input.files[0];if(!file) return;
   if(file.size>20*1024*1024){showToast('Max 20MB','error');return;}
-  showToast('Uploading…','warn');
-  const ext=file.name.split('.').pop().toLowerCase();
-  const isImage=['jpg','jpeg','png','gif','webp'].includes(ext);
-  const fp=`chat/${BIZ.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-  const{data,error}=await sb.storage.from('chat-files').upload(fp,file,{upsert:false});
-  if(error){showToast('Upload failed: '+error.message,'error');return;}
-  const{data:ud}=sb.storage.from('chat-files').getPublicUrl(fp);
-  BIZ_PENDING_FILE={url:ud.publicUrl,name:file.name,size:file.size,isImage};
-  showToast('File ready — click Send');
+  // Store raw file — upload happens on Send
+  const isImage=isBizImg(file.name)||file.type.startsWith('image/');
+  BIZ_PENDING_FILE={rawFile:file,name:file.name,size:file.size,isImage,mimeType:file.type};
+  // Show preview
+  if(isImage){
+    const r=new FileReader();
+    r.onload=e=>{BIZ_PENDING_FILE.preview=e.target.result;renderBizFilePreview();};
+    r.readAsDataURL(file);
+  } else {
+    renderBizFilePreview();
+  }
   input.value='';
+}
+
+function renderBizFilePreview(){
+  // Remove old preview
+  const old=document.getElementById('biz-file-preview');
+  if(old) old.remove();
+  if(!BIZ_PENDING_FILE) return;
+  const f=BIZ_PENDING_FILE;
+  const icon=f.mimeType?.includes('pdf')?'📋':f.mimeType?.includes('word')?'📝':'📄';
+  const div=document.createElement('div');
+  div.id='biz-file-preview';
+  div.style.cssText='margin-bottom:8px;background:rgba(77,217,148,0.06);border:1.5px solid rgba(77,217,148,0.2);border-radius:10px;padding:8px 10px;display:flex;gap:10px;align-items:center;';
+  div.innerHTML=`
+    ${f.preview?`<img src="${f.preview}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1);"/>`:
+      `<div style="width:48px;height:48px;background:rgba(255,255,255,0.05);border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;">${icon}</div>`}
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:700;color:#FEFCF7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:1px;">${fmtBizSize(f.size)} · 📎 Ready — click Send</div>
+    </div>
+    <button onclick="BIZ_PENDING_FILE=null;renderBizFilePreview();" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px;padding:4px;">×</button>`;
+  // Insert before the flex row with textarea
+  const inputRow=document.querySelector('#chat-input')?.closest('div[style*="display:flex"]');
+  if(inputRow) inputRow.parentNode.insertBefore(div,inputRow);
+}
+
+async function uploadBizFile(file){
+  const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const fp=`chat/${BIZ.id}/${Date.now()}_${safe}`;
+  const{error}=await sb.storage.from('chat-files').upload(fp,file,{upsert:false,contentType:file.type});
+  if(error){showToast('Upload failed: '+error.message,'error');return null;}
+  const{data:ud}=sb.storage.from('chat-files').getPublicUrl(fp);
+  return{url:ud.publicUrl,name:file.name,size:file.size,mimeType:file.type,isImage:isBizImg(file.name)};
 }
 async function renderMessages(c){
   // Load from chat_rooms — this is where room_ids in direct_messages point to
