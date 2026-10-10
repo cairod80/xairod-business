@@ -217,6 +217,18 @@ const SUPA_URL = "https://gfvsosvszxwazuqnsavq.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmdnNvc3Zzenh3YXp1cW5zYXZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODcxNjAsImV4cCI6MjA5MzY2MzE2MH0.SvSc1IDr_iK8YweQpKarmglQTPV7w2dNkKcbFim_Ztc";
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+// ── SECURITY: sanitize user content before innerHTML ─────────────────────────
+const safe=(str)=>{
+  if(!str) return '';
+  const d=document.createElement('div');
+  d.textContent=String(str);
+  return d.innerHTML;
+};
+// Production logger
+const isDev=false; // set true only in development
+const devLog=isDev?console.log:()=>{};
+const devWarn=isDev?console.warn:()=>{};
+
 let BIZ = null;
 let REQUESTS = [];
 let BOOKINGS = [];
@@ -715,7 +727,7 @@ async function uploadImg(input){
   const file=input.files[0];if(!file) return;
   if(file.size>5*1024*1024){showToast('Max 5MB','error');return;}
   showToast('Uploading…','warn');
-  const fp=`${BIZ.id}/${Date.now()}.${file.name.split('.').pop()}`;
+  const ext=file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,''); const fp=`${BIZ.id}/${crypto.randomUUID()}.${ext}`;
   const{error}=await sb.storage.from('listing-images').upload(fp,file,{upsert:false});
   if(error){showToast('Upload failed: '+error.message,'error');return;}
   const{data:ud}=sb.storage.from('listing-images').getPublicUrl(fp);
@@ -813,16 +825,17 @@ function renderBizFilePreview(){
 }
 
 async function uploadBizFile(file){
-  const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-  const ts=Date.now();
+  const ext=(file.name||'').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,'');
+  const ALLOWED=['jpg','jpeg','png','gif','webp','pdf','doc','docx','txt'];
+  if(!ALLOWED.includes(ext)){showToast('File type not allowed','error');return null;}
+  const fp=`chat/${BIZ.id}/${crypto.randomUUID()}.${ext}`;
   for(const bucket of ['chat-files','listing-images']){
-    const fp=`chat/${BIZ.id}/${ts}_${safe}`;
-    const{error}=await sb.storage.from(bucket).upload(fp,file,{upsert:true,contentType:file.type});
+    const{error}=await sb.storage.from(bucket).upload(fp,file,{upsert:false,contentType:file.type});
     if(!error){
       const{data:ud}=sb.storage.from(bucket).getPublicUrl(fp);
       return{url:ud.publicUrl,name:file.name,size:file.size,mimeType:file.type,isImage:isBizImg(file.name)};
     }
-    console.warn('Upload to '+bucket+' failed:',error.message);
+    devWarn('Upload failed:',error.message);
   }
   showToast('Upload failed — check connection','error');
   return null;
@@ -839,7 +852,7 @@ async function renderMessages(c){
   c.innerHTML=`<div id="room-list"></div>`;
   rooms.forEach(r=>{
     const d=document.createElement('div');d.className='card';d.style.cssText='display:flex;align-items:center;gap:12px;cursor:pointer;';
-    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:rgba(77,217,148,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👤</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.listing_name||'Customer Chat'}</div><div style="font-size:10px;color:var(--sub);">Room: ${r.id?.slice(0,8)}</div></div><span style="color:var(--sub);font-size:18px;">›</span>`;
+    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:rgba(77,217,148,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👤</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${safe(r.listing_name)||'Customer Chat'}</div><div style="font-size:10px;color:var(--sub);">Room: ${safe(r.id?.slice(0,8))}</div></div><span style="color:var(--sub);font-size:18px;">›</span>`;
     d.onclick=()=>openChat(r,c);
     $('room-list').appendChild(d);
   });
