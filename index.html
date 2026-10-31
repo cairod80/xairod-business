@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Xairod Business Portal</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -119,6 +119,15 @@ td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-ali
   .grid-2{grid-template-columns:1fr;}
 }
 </style>
+<meta name="theme-color" content="#0A6B3E"/>
+<meta name="application-name" content="Xairod Business"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Xairod Biz"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" href="/icon-192.png"/>
 </head>
 <body>
 
@@ -218,12 +227,10 @@ const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // ── SECURITY: sanitize user content before innerHTML ─────────────────────────
-const safe=(str)=>{
-  if(!str) return '';
-  const d=document.createElement('div');
-  d.textContent=String(str);
-  return d.innerHTML;
-};
+const esc=(v)=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const safe=esc; // legacy alias
+// Only allow http(s) links from user-supplied URLs (blocks javascript: / data: injection)
+const safeUrl=(u)=>{try{const x=new URL(u,location.origin);return(x.protocol==='https:'||x.protocol==='http:')?x.href:'#';}catch(e){return '#';}};
 // Production logger
 const isDev=false; // set true only in development
 const devLog=isDev?console.log:()=>{};
@@ -290,7 +297,7 @@ $('btn-register').addEventListener('click', async()=>{
     const{data:biz,error:bizErr}=await sb.from('business_accounts').insert({user_id:uid,name,email,category:cat,city,description:desc,status:'pending',kyc_status:'submitted',commission_rate:12}).select().single();
     if(bizErr)throw bizErr;
     for(const doc of docs){
-      const fp=`kyc/${biz.id}/${Date.now()}_${doc.name}`;
+      const fp=`kyc/${biz.id}/${Date.now()}_${esc(doc.name)}`;
       await sb.storage.from('kyc-documents').upload(fp,doc);
       await sb.from('kyc_documents').insert({business_id:biz.id,document_type:doc.name,file_path:fp,status:'pending'});
     }
@@ -392,13 +399,13 @@ function renderRequests(c){
     d.innerHTML=`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
         <div>
-          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">${req.listing_name||'Service Request'}</div>
-          <div style="font-size:10px;color:var(--sub);">Ref: ${req.ref||req.id?.slice(0,8)} · ${new Date(req.created_at).toLocaleDateString()}</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">${esc(req.listing_name||'Service Request')}</div>
+          <div style="font-size:10px;color:var(--sub);">Ref: ${esc(req.ref||req.id?.slice(0,8))} · ${new Date(req.created_at).toLocaleDateString()}</div>
         </div>
         <span class="pill pill-${req.status==='in_progress'?'green':req.status==='quoted'?'gold':'gray'}">${req.status||'open'}</span>
       </div>
-      <div style="font-size:12px;color:var(--sub);line-height:1.6;margin-bottom:10px;">${(req.what_i_need||'').slice(0,150)}</div>
-      ${req.when_needed?`<div style="font-size:10px;color:var(--sub);margin-bottom:8px;">📅 ${req.when_needed}${req.budget?' · 💰 '+req.budget:''}</div>`:''}
+      <div style="font-size:12px;color:var(--sub);line-height:1.6;margin-bottom:10px;">${esc((req.what_i_need||'').slice(0,150))}</div>
+      ${req.when_needed?`<div style="font-size:10px;color:var(--sub);margin-bottom:8px;">📅 ${esc(req.when_needed)}${req.budget?' · 💰 '+req.budget:''}</div>`:''}
       ${req.status==='open'?`<button class="btn btn-primary btn-sm" onclick="openQuoteModal('${req.id}')">Send Quote</button>`:''}
       ${req.status==='quoted'?`<div style="font-size:11px;color:#F5C550;font-weight:600;">⏳ Waiting for customer to accept and pay</div>`:''}
       ${req.status==='in_progress'?`<div style="font-size:11px;color:var(--green);font-weight:600;">✅ Payment confirmed — deliver the service. Check <button onclick="navigate('messages')" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:11px;font-weight:700;">Messages</button> to chat.</div>`:''}
@@ -412,7 +419,7 @@ function openQuoteModal(reqId){
   if(!req) return;
   showModal(`
     <div class="modal-title">Send Quote</div>
-    <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">For: ${req.listing_name||'Service'} · ${req.ref||''}</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:16px;">For: ${esc(req.listing_name||'Service')} · ${esc(req.ref||'')}</div>
     <div class="grid-2">
       <div class="form-group"><label>Price (NGN) *</label><input type="number" id="q-price" placeholder="50000"/></div>
       <div class="form-group"><label>Timeline *</label><input type="text" id="q-timeline" placeholder="e.g. 2 weeks"/></div>
@@ -443,7 +450,7 @@ async function submitQuote(reqId){
   const commAmt=Math.round(gross*comm/100);
   await sb.from('quotes').insert({request_id:reqId,business_id:BIZ.id,price:gross,commission_rate:comm,commission_amount:commAmt,payout_amount:gross-commAmt,timeline,notes:$('q-notes').value,status:'pending'});
   await sb.from('service_requests').update({status:'quoted',assigned_business_id:BIZ.id}).eq('id',reqId);
-  await sb.from('notifications').insert({user_id:req.user_id,icon:'💬',message:`${BIZ.name} sent you a quote of ${fmt(gross)} NGN. Go to My Requests to review.`,type:'quote',metadata:{request_id:reqId}});
+  await sb.from('notifications').insert({user_id:req.user_id,icon:'💬',message:`${esc(BIZ.name)} sent you a quote of ${fmt(gross)} NGN. Go to My Requests to review.`,type:'quote',metadata:{request_id:reqId}});
   closeModal();showToast('Quote sent!');
   await refreshData();navigate('requests');
 }
@@ -456,11 +463,11 @@ function renderBookings(c){
   BOOKINGS.forEach(b=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b.listing_name||b.service_description?.slice(0,30)||'—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(b.listing_name||b.service_description?.slice(0,30)||'—')}</td>
       <td style="font-weight:700;color:var(--green);">${fmt(b.gross_amount)} NGN</td>
       <td style="font-size:11px;color:var(--sub);">${fmt(b.payout_amount)}</td>
-      <td><span class="pill pill-${b.status==='completed'?'green':b.status==='in_progress'?'gold':'gray'}">${b.status||'—'}</span></td>
-      <td>${b.status==='in_progress'?`<button class="btn btn-primary btn-sm" onclick="markComplete('${b.id}','${b.user_id}')">Mark Complete</button>`:''}${b.confirmation_code?`<div style="font-size:9px;color:var(--green);margin-top:4px;">Code: ${b.confirmation_code}</div>`:''}</td>
+      <td><span class="pill pill-${b.status==='completed'?'green':b.status==='in_progress'?'gold':'gray'}">${esc(b.status||'—')}</span></td>
+      <td>${b.status==='in_progress'?`<button class="btn btn-primary btn-sm" onclick="markComplete('${b.id}','${b.user_id}')">Mark Complete</button>`:''}${b.confirmation_code?`<div style="font-size:9px;color:var(--green);margin-top:4px;">Code: ${esc(b.confirmation_code)}</div>`:''}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -469,7 +476,7 @@ function renderBookings(c){
 async function markComplete(bookingId,userId){
   const code='XR-CONF-'+Math.floor(100000+Math.random()*900000);
   await sb.from('bookings').update({status:'awaiting_confirmation',confirmation_code:code,completed_at:new Date().toISOString()}).eq('id',bookingId);
-  await sb.from('notifications').insert({user_id:userId,icon:'🎉',message:`${BIZ.name} completed your service! Enter code ${code} to confirm and release payment.`,type:'completion',metadata:{booking_id:bookingId,code}});
+  await sb.from('notifications').insert({user_id:userId,icon:'🎉',message:`${esc(BIZ.name)} completed your service! Enter code ${code} to confirm and release payment.`,type:'completion',metadata:{booking_id:bookingId,code}});
   showToast('Marked complete. Confirmation code sent to customer.');
   await refreshData();navigate('bookings');
 }
@@ -498,10 +505,10 @@ function renderServicesList(){
     d.innerHTML=`
       <div style="flex:1;">
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
-          <span style="font-size:13px;font-weight:700;">${svc.name}</span>
+          <span style="font-size:13px;font-weight:700;">${esc(svc.name)}</span>
           <span class="pill pill-${svc.available?'green':'gray'}">${svc.available?'Live':'Hidden'}</span>
         </div>
-        ${svc.description?`<div style="font-size:11px;color:var(--sub);margin-bottom:4px;">${svc.description}</div>`:''}
+        ${svc.description?`<div style="font-size:11px;color:var(--sub);margin-bottom:4px;">${esc(svc.description)}</div>`:''}
         <span style="font-family:'Fraunces',serif;font-size:16px;font-weight:900;color:var(--green);">${fmt(svc.price)} ${svc.currency||'NGN'}</span>
         ${svc.duration_mins>0?`<span style="font-size:10px;color:var(--sub);margin-left:8px;">· ${svc.duration_mins<60?svc.duration_mins+'min':Math.floor(svc.duration_mins/60)+'h'}</span>`:''}
       </div>
@@ -636,7 +643,7 @@ async function renderCustomers(c){
   c.innerHTML='';
   customers.forEach(cu=>{
     const d=document.createElement('div');d.className='card';d.style.display='flex';d.style.alignItems='center';d.style.gap='12px';
-    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">${cu.name[0]?.toUpperCase()||'?'}</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${cu.name}</div><div style="font-size:10px;color:var(--sub);">Last: ${new Date(cu.last).toLocaleDateString()}</div></div><div style="font-size:12px;font-weight:800;color:var(--green);">${cu.count} request${cu.count!==1?'s':''}</div>`;
+    d.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">${esc(cu.name[0]?.toUpperCase()||'?')}</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${esc(cu.name)}</div><div style="font-size:10px;color:var(--sub);">Last: ${new Date(cu.last).toLocaleDateString()}</div></div><div style="font-size:12px;font-weight:800;color:var(--green);">${cu.count} request${cu.count!==1?'s':''}</div>`;
     c.appendChild(d);
   });
 }
@@ -658,8 +665,8 @@ async function renderPayouts(c){
       <div class="card-title">💳 Payout Account Details</div>
       <div class="alert alert-success" style="margin-bottom:14px;">✅ <strong>Paystack is live.</strong> All transactions via Paystack. Payouts every Friday. Details only visible to Xairod admins.</div>
       <div class="grid-2">
-        <div class="form-group"><label>Account Name</label><input type="text" id="bank-name" value="${bankForm.account_name}" placeholder="As registered with bank"/></div>
-        <div class="form-group"><label>Account Number</label><input type="text" id="bank-num" value="${bankForm.account_number}" placeholder="10-digit NUBAN" maxlength="10"/></div>
+        <div class="form-group"><label>Account Name</label><input type="text" id="bank-name" value="${esc(bankForm.account_name)}" placeholder="As registered with bank"/></div>
+        <div class="form-group"><label>Account Number</label><input type="text" id="bank-num" value="${esc(bankForm.account_number)}" placeholder="10-digit NUBAN" maxlength="10"/></div>
       </div>
       <div class="grid-2">
         <div class="form-group"><label>Bank Name</label>
@@ -676,7 +683,7 @@ async function renderPayouts(c){
           </select>
         </div>
       </div>
-      <div class="form-group"><label>Paystack Recipient Code (optional)</label><input type="text" id="bank-code" value="${bankForm.paystack_recipient_code}" placeholder="RCP_xxxxxxxxxxxx"/></div>
+      <div class="form-group"><label>Paystack Recipient Code (optional)</label><input type="text" id="bank-code" value="${esc(bankForm.paystack_recipient_code)}" placeholder="RCP_xxxxxxxxxxxx"/></div>
       <button class="btn btn-primary btn-sm" onclick="saveBank()">Save Payout Details</button>
     </div>`;
 }
@@ -701,9 +708,9 @@ async function renderListing(c){
     </div>
     <div class="card">
       <div class="card-title">Business Details</div>
-      <div class="form-group"><label>Business Name</label><input type="text" id="l-name" value="${BIZ.name||''}"/></div>
-      <div class="form-group"><label>City / Location</label><input type="text" id="l-city" value="${BIZ.city||''}" placeholder="Cairo, Egypt"/></div>
-      <div class="form-group"><label>Description</label><textarea id="l-desc" rows="4">${BIZ.description||''}</textarea></div>
+      <div class="form-group"><label>Business Name</label><input type="text" id="l-name" value="${esc(BIZ.name||'')}"/></div>
+      <div class="form-group"><label>City / Location</label><input type="text" id="l-city" value="${esc(BIZ.city||'')}" placeholder="Cairo, Egypt"/></div>
+      <div class="form-group"><label>Description</label><textarea id="l-desc" rows="4">${esc(BIZ.description||'')}</textarea></div>
       <button class="btn btn-primary btn-sm" onclick="saveListing()">Save Changes</button>
     </div>`;
   renderImgGrid();
@@ -815,7 +822,7 @@ function renderBizFilePreview(){
     ${f.preview?`<img src="${f.preview}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1);"/>`:
       `<div style="width:48px;height:48px;background:rgba(255,255,255,0.05);border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;">${icon}</div>`}
     <div style="flex:1;min-width:0;">
-      <div style="font-size:12px;font-weight:700;color:#FEFCF7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</div>
+      <div style="font-size:12px;font-weight:700;color:#FEFCF7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</div>
       <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:1px;">${fmtBizSize(f.size)} · 📎 Ready — click Send</div>
     </div>
     <button onclick="BIZ_PENDING_FILE=null;renderBizFilePreview();" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:20px;padding:4px;">×</button>`;
@@ -865,8 +872,8 @@ async function openChat(room,container){
   await sb.from('direct_messages').update({read_by_business:true}).eq('room_id',room.id).neq('sender_role','business');
   container.innerHTML=`
     <button class="btn btn-outline btn-sm" onclick="navigate('messages')" style="margin-bottom:14px;">← Back to chats</button>
-    <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:800;margin-bottom:4px;">${room.listing_name||'Customer Chat'}</div>
-    <div style="font-size:10px;color:var(--sub);margin-bottom:16px;">Ref: ${room.ref||room.id?.slice(0,8)}</div>
+    <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:800;margin-bottom:4px;">${esc(room.listing_name||'Customer Chat')}</div>
+    <div style="font-size:10px;color:var(--sub);margin-bottom:16px;">Ref: ${esc(room.ref||room.id?.slice(0,8))}</div>
     <div id="chat-msgs" style="min-height:200px;max-height:400px;overflow-y:auto;margin-bottom:14px;"></div>
     <div style="display:flex;gap:8px;align-items:flex-end;">
       <label style="width:36px;height:36px;border-radius:50%;border:1px solid var(--bdr);background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
@@ -894,15 +901,15 @@ function renderChatMsgs(){
     if((m.type==='image'||m.type==='file')&&m.metadata?.url){
       if(m.metadata.isImage){
         const img=document.createElement('img');
-        img.src=m.metadata.url;img.alt=m.metadata.name||'image';
+        img.src=safeUrl(m.metadata.url);img.alt=m.metadata.name||'image';
         img.style.cssText='max-width:100%;max-height:260px;border-radius:8px;display:block;cursor:pointer;margin-bottom:4px;';
-        img.onclick=()=>window.open(m.metadata.url,'_blank');
+        img.onclick=()=>window.open(safeUrl(m.metadata.url),'_blank','noopener');
         bubble.appendChild(img);
       } else {
         const a=document.createElement('a');
-        a.href=m.metadata.url;a.target='_blank';
+        a.href=safeUrl(m.metadata.url);a.target='_blank';a.rel='noopener noreferrer';
         a.style.cssText='display:flex;gap:8px;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.06);border-radius:8px;text-decoration:none;';
-        a.innerHTML=`<span>📄</span><div><div style="font-size:12px;font-weight:700;color:var(--green);">${m.metadata.name||'Document'}</div><div style="font-size:9px;color:var(--sub);">Tap to open</div></div>`;
+        a.innerHTML=`<span>📄</span><div><div style="font-size:12px;font-weight:700;color:var(--green);">${esc(m.metadata.name||'Document')}</div><div style="font-size:9px;color:var(--sub);">Tap to open</div></div>`;
         bubble.appendChild(a);
       }
     } else { bubble.textContent=m.content||''; }
@@ -929,7 +936,7 @@ async function sendChatMsg(){
     request_id:ACTIVE_ROOM.request_id||null,
   }).select().single();
   if(msg){CHAT_MSGS.push(msg);renderChatMsgs();}
-  await sb.from('notifications').insert({user_id:ACTIVE_ROOM.user_id,icon:'💬',message:`${BIZ.name} sent you a message. Tap to read.`,type:'direct_message',metadata:{room_id:ACTIVE_ROOM.id}});
+  await sb.from('notifications').insert({user_id:ACTIVE_ROOM.user_id,icon:'💬',message:`${esc(BIZ.name)} sent you a message. Tap to read.`,type:'direct_message',metadata:{room_id:ACTIVE_ROOM.id}});
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
@@ -941,7 +948,7 @@ async function renderSettings(c){
       <div class="card-title">📞 Contact Number (Private)</div>
       <p style="font-size:11px;color:var(--sub);margin-bottom:14px;"><strong style="color:#F5C550;">Never shown publicly.</strong> Only visible to Xairod admins for coordination.</p>
       <div style="display:flex;gap:10px;">
-        <input type="tel" id="s-phone" value="${phone}" placeholder="+234 800 000 0000" style="flex:1;"/>
+        <input type="tel" id="s-phone" value="${esc(phone)}" placeholder="+234 800 000 0000" style="flex:1;"/>
         <button class="btn btn-primary btn-sm" onclick="savePhone()">Save</button>
       </div>
     </div>
@@ -960,6 +967,11 @@ sb.auth.getSession().then(async({data:{session}})=>{
     if(rows?.[0]){BIZ=rows[0];await loadApp();return;}
   }
 });
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js').catch(function(){});});
+}
 </script>
 </body>
 </html>
